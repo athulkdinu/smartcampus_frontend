@@ -5,14 +5,10 @@ import { registerAPI } from '../../services/allAPI'
 
 const StudentRegisterPage = () => {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    fullName: '',
     email: '',
     phone: '',
-    studentId: '',
-    dateOfBirth: '',
-    gender: '',
-    address: '',
+    department: '',
     password: '',
     confirmPassword: ''
   })
@@ -36,31 +32,13 @@ const StudentRegisterPage = () => {
   const validateForm = () => {
     const newErrors = {}
 
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required'
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required'
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required'
     }
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid'
-    }
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required'
-    }
-    if (!formData.studentId.trim()) {
-      newErrors.studentId = 'Student ID is required'
-    }
-    if (!formData.dateOfBirth) {
-      newErrors.dateOfBirth = 'Date of birth is required'
-    }
-    if (!formData.gender) {
-      newErrors.gender = 'Gender is required'
-    }
-    if (!formData.address.trim()) {
-      newErrors.address = 'Address is required'
     }
     if (!formData.password) {
       newErrors.password = 'Password is required'
@@ -81,10 +59,12 @@ const StudentRegisterPage = () => {
 
     try {
       const payload = {
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        name: formData.fullName.trim(),
         email: formData.email,
         password: formData.password,
-        role: 'student'
+        role: 'student',
+        phone: formData.phone || undefined,
+        department: formData.department || undefined
       }
 
       const response = await registerAPI(payload)
@@ -150,45 +130,24 @@ const StudentRegisterPage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-gray-700 text-sm font-semibold mb-2.5">
-                  First Name <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="Enter first name"
-                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all font-medium ${
-                    errors.firstName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.firstName && (
-                  <p className="mt-1.5 text-sm text-red-600">{errors.firstName}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-semibold mb-2.5">
-                  Last Name <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  placeholder="Enter last name"
-                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all font-medium ${
-                    errors.lastName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.lastName && (
-                  <p className="mt-1.5 text-sm text-red-600">{errors.lastName}</p>
-                )}
-              </div>
+            {/* Full Name */}
+            <div>
+              <label className="block text-gray-700 text-sm font-semibold mb-2.5">
+                Full Name <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                placeholder="Enter full name"
+                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all font-medium ${
+                  errors.fullName ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.fullName && (
+                <p className="mt-1.5 text-sm text-red-600">{errors.fullName}</p>
+              )}
             </div>
 
             {/* Email and Phone */}
@@ -221,99 +180,28 @@ const StudentRegisterPage = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="Enter phone number"
+                  placeholder="Enter phone number (optional)"
                   className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all font-medium ${
                     errors.phone ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
-                {errors.phone && (
-                  <p className="mt-1.5 text-sm text-red-600">{errors.phone}</p>
-                )}
+                {/* phone optional, no error */}
               </div>
             </div>
 
-            {/* Student ID and Date of Birth */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-gray-700 text-sm font-semibold mb-2.5">
-                  Student ID <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="studentId"
-                  value={formData.studentId}
-                  onChange={handleChange}
-                  placeholder="Enter student ID"
-                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all font-medium ${
-                    errors.studentId ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.studentId && (
-                  <p className="mt-1.5 text-sm text-red-600">{errors.studentId}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-semibold mb-2.5">
-                  Date of Birth <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="dateOfBirth"
-                  value={formData.dateOfBirth}
-                  onChange={handleChange}
-                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all font-medium ${
-                    errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.dateOfBirth && (
-                  <p className="mt-1.5 text-sm text-red-600">{errors.dateOfBirth}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Gender and Address */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-gray-700 text-sm font-semibold mb-2.5">
-                  Gender <span className="text-red-600">*</span>
-                </label>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all font-medium ${
-                    errors.gender ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">Select gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-                {errors.gender && (
-                  <p className="mt-1.5 text-sm text-red-600">{errors.gender}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-semibold mb-2.5">
-                  Address <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Enter address"
-                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all font-medium ${
-                    errors.address ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.address && (
-                  <p className="mt-1.5 text-sm text-red-600">{errors.address}</p>
-                )}
-              </div>
+            {/* Department (optional) */}
+            <div>
+              <label className="block text-gray-700 text-sm font-semibold mb-2.5">
+                Department
+              </label>
+              <input
+                type="text"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                placeholder="e.g., Computer Science"
+                className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all font-medium border-gray-300"
+              />
             </div>
 
             {/* Password Fields */}

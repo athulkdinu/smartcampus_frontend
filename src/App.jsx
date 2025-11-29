@@ -53,7 +53,14 @@ function App() {
         
         {/* Student Routes */}
         <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
-        <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route
+          path="/student/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/student/academic" element={<AcademicCampus />} />
         <Route path="/student/academic/grades" element={<GradesPage />} />
         <Route path="/student/academic/attendance" element={<AttendancePage />} />
@@ -67,7 +74,14 @@ function App() {
         <Route path="/student/academic/notifications" element={<NotificationsPage />} />
         <Route path="/student/skills" element={<SkillsPage />} />
         <Route path="/student/placement" element={<PlacementPage />} />
-        <Route path="/student/profile" element={<ProfilePage />} />
+        <Route
+          path="/student/profile"
+          element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/student/help" element={<HelpPage />} />
         
         {/* Admin Routes */}

@@ -42,6 +42,14 @@ export const getAdminEventsAPI = () => {
   return api.get("/api/events/admin");
 };
 
+export const getProfileAPI = () => {
+  return api.get("/api/auth/me");
+};
+
+export const updateProfileAPI = (data) => {
+  return api.put("/api/auth/update-profile", data);
+};
+
 export default api;
 
 
