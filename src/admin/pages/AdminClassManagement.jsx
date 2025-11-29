@@ -5,7 +5,7 @@ import AdminLayout from '../../shared/layouts/AdminLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import { Users, BookOpen, PlusCircle } from 'lucide-react'
-import { createClassAPI, getAllClassesAdminAPI } from '../../services/api'
+import { createClassAPI, getAllClassesAdminAPI, getAllUsersAPI, getClassDetailsAdminAPI, assignClassTeacherAPI, assignSubjectTeacherAPI } from '../../services/api'
 
 const AdminClassManagement = () => {
   const [classes, setClasses] = useState([])
@@ -15,6 +15,14 @@ const AdminClassManagement = () => {
     className: '',
     department: ''
   })
+  const [faculty, setFaculty] = useState([])
+  const [selectedClass, setSelectedClass] = useState(null)
+  const [showAssignTeacher, setShowAssignTeacher] = useState(false)
+  const [showAssignSubject, setShowAssignSubject] = useState(false)
+  const [showStudents, setShowStudents] = useState(false)
+  const [subjectForm, setSubjectForm] = useState({ subjectName: '', teacherId: '' })
+  const [selectedTeacherId, setSelectedTeacherId] = useState('')
+  const [classDetails, setClassDetails] = useState(null)
 
   const loadClasses = async () => {
     try {
@@ -36,6 +44,19 @@ const AdminClassManagement = () => {
   useEffect(() => {
     loadClasses()
   }, [])
+
+  const loadFaculty = async () => {
+    try {
+      const res = await getAllUsersAPI()
+      if (res?.status === 200 && res.data?.users && Array.isArray(res.data.users)) {
+        const facultyList = res.data.users.filter(u => u.role === 'faculty')
+        setFaculty(facultyList)
+      }
+    } catch (error) {
+      console.error('Failed to load faculty:', error)
+      toast.error('Failed to load faculty list')
+    }
+  }
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -68,6 +89,92 @@ const AdminClassManagement = () => {
       toast.error(message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const openAssignTeacher = async (cls) => {
+    setSelectedClass(cls)
+    setSelectedTeacherId('')
+    setShowAssignTeacher(true)
+    if (faculty.length === 0) {
+      await loadFaculty()
+    }
+  }
+
+  const openAssignSubject = async (cls) => {
+    setSelectedClass(cls)
+    setSubjectForm({ subjectName: '', teacherId: '' })
+    setShowAssignSubject(true)
+    if (faculty.length === 0) {
+      await loadFaculty()
+    }
+  }
+
+  const openViewStudents = async (cls) => {
+    try {
+      setSelectedClass(cls)
+      const res = await getClassDetailsAdminAPI(cls._id)
+      if (res?.status === 200 && res.data?.class) {
+        setClassDetails(res.data.class)
+        setShowStudents(true)
+      } else {
+        toast.error('Failed to load class details')
+      }
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Unable to load class details'
+      toast.error(message)
+    }
+  }
+
+  const handleSaveClassTeacher = async (e) => {
+    e.preventDefault()
+    if (!selectedClass || !selectedTeacherId) {
+      toast.error('Please select a class teacher')
+      return
+    }
+    try {
+      const res = await assignClassTeacherAPI({
+        classId: selectedClass._id,
+        teacherId: selectedTeacherId
+      })
+      if (res?.status === 200) {
+        toast.success('Class teacher assigned')
+        setShowAssignTeacher(false)
+        await loadClasses() // Refresh classes list
+      } else {
+        const message = res?.response?.data?.message || 'Failed to assign class teacher'
+        toast.error(message)
+      }
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Something went wrong'
+      toast.error(message)
+    }
+  }
+
+  const handleSaveSubject = async (e) => {
+    e.preventDefault()
+    if (!selectedClass || !subjectForm.subjectName.trim() || !subjectForm.teacherId) {
+      toast.error('Subject name and teacher are required')
+      return
+    }
+    try {
+      const res = await assignSubjectTeacherAPI({
+        classId: selectedClass._id,
+        subjectName: subjectForm.subjectName.trim(),
+        teacherId: subjectForm.teacherId
+      })
+      if (res?.status === 200) {
+        toast.success('Subject teacher assigned')
+        setShowAssignSubject(false)
+        setSubjectForm({ subjectName: '', teacherId: '' }) // Reset form
+        await loadClasses() // Refresh classes list
+      } else {
+        const message = res?.response?.data?.message || 'Failed to assign subject teacher'
+        toast.error(message)
+      }
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Something went wrong'
+      toast.error(message)
     }
   }
 
@@ -171,13 +278,13 @@ const AdminClassManagement = () => {
                         </td>
                         <td className="py-3 px-4 text-xs">
                           <div className="flex flex-wrap gap-2">
-                            <Button variant="secondary" size="xs">
+                            <Button variant="secondary" size="xs" onClick={() => openAssignTeacher(cls)}>
                               Assign Class Teacher
                             </Button>
-                            <Button variant="ghost" size="xs">
+                            <Button variant="ghost" size="xs" onClick={() => openAssignSubject(cls)}>
                               Subjects & Faculty
                             </Button>
-                            <Button variant="ghost" size="xs">
+                            <Button variant="ghost" size="xs" onClick={() => openViewStudents(cls)}>
                               View Students
                             </Button>
                           </div>
@@ -189,6 +296,129 @@ const AdminClassManagement = () => {
               </div>
             )}
           </Card>
+
+          {/* Assign Class Teacher Modal (simple inline panel) */}
+          {showAssignTeacher && selectedClass && (
+            <Card className="lg:col-span-3 border border-slate-200 bg-slate-50/70">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Assign Class Teacher · {selectedClass.className}
+                </h3>
+                <Button variant="ghost" size="xs" onClick={() => setShowAssignTeacher(false)}>
+                  Close
+                </Button>
+              </div>
+              <form className="flex flex-col sm:flex-row gap-3 items-center" onSubmit={handleSaveClassTeacher}>
+                <select
+                  value={selectedTeacherId}
+                  onChange={e => setSelectedTeacherId(e.target.value)}
+                  className="w-full sm:w-64 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                >
+                  <option value="">Select faculty</option>
+                  {faculty.map(f => (
+                    <option key={f.id} value={f.id}>
+                      {f.name} ({f.email})
+                    </option>
+                  ))}
+                </select>
+                <Button type="submit" variant="primary" size="sm">
+                  Save
+                </Button>
+              </form>
+            </Card>
+          )}
+
+          {/* Assign Subject & Faculty Inline Panel */}
+          {showAssignSubject && selectedClass && (
+            <Card className="lg:col-span-3 border border-slate-200 bg-slate-50/70">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Assign Subject & Faculty · {selectedClass.className}
+                </h3>
+                <Button variant="ghost" size="xs" onClick={() => setShowAssignSubject(false)}>
+                  Close
+                </Button>
+              </div>
+              <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={handleSaveSubject}>
+                <input
+                  type="text"
+                  value={subjectForm.subjectName}
+                  onChange={e => setSubjectForm(prev => ({ ...prev, subjectName: e.target.value }))}
+                  placeholder="Subject name"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                />
+                <select
+                  value={subjectForm.teacherId}
+                  onChange={e => setSubjectForm(prev => ({ ...prev, teacherId: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                >
+                  <option value="">Select faculty</option>
+                  {faculty.map(f => (
+                    <option key={f.id} value={f.id}>
+                      {f.name} ({f.email})
+                    </option>
+                  ))}
+                </select>
+                <div className="flex gap-2 justify-end">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setShowAssignSubject(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" variant="primary" size="sm">
+                    Save
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          )}
+
+          {/* View Students Inline Panel */}
+          {showStudents && selectedClass && classDetails && (
+            <Card className="lg:col-span-3 border border-slate-200 bg-slate-50/70">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Students in {classDetails.className}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Department: {classDetails.department}
+                  </p>
+                </div>
+                <Button variant="ghost" size="xs" onClick={() => setShowStudents(false)}>
+                  Close
+                </Button>
+              </div>
+              {classDetails.students && classDetails.students.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">
+                          Name
+                        </th>
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">
+                          Student ID
+                        </th>
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">
+                          Email
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {classDetails.students.map(stu => (
+                        <tr key={stu._id} className="border-b border-slate-100">
+                          <td className="py-2 px-3">{stu.name}</td>
+                          <td className="py-2 px-3">{stu.studentID || '-'}</td>
+                          <td className="py-2 px-3">{stu.email}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">No students assigned to this class yet.</p>
+              )}
+            </Card>
+          )}
         </div>
       </motion.div>
     </AdminLayout>

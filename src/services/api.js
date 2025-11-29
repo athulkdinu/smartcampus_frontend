@@ -67,6 +67,18 @@ export const updateStudentClassAPI = (data) => {
   return api.put("/api/student/update-class", data);
 };
 
+export const getClassDetailsAdminAPI = (id) => {
+  return api.get(`/api/admin/classes/${id}`);
+};
+
+export const assignClassTeacherAPI = (data) => {
+  return api.put("/api/admin/classes/assign-class-teacher", data);
+};
+
+export const assignSubjectTeacherAPI = (data) => {
+  return api.put("/api/admin/classes/assign-subject", data);
+};
+
 export default api;
 
 
