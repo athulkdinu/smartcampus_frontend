@@ -18,6 +18,10 @@ export const getAllUsersAPI = () => {
   return api.get("/api/admin/users");
 };
 
+export const createEventAPI = (data) => {
+  return api.post("/api/events", data);
+};
+
 export default api;
 
 

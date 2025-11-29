@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 import MainLayout from '../../../shared/layouts/MainLayout'
 import Card from '../../../shared/components/Card'
 import Button from '../../../shared/components/Button'
 import { Calendar, MapPin, Clock, Sparkles, ArrowRight } from 'lucide-react'
 import { events, studentEventProposals, studentProfile } from '../../data/academicData'
+import { createEventAPI } from '../../../services/api'
 
 const EventsPage = () => {
   const typeColors = {
@@ -30,29 +32,54 @@ const EventsPage = () => {
     forwarded: 'bg-purple-50 text-purple-700'
   }
 
-  const handleProposalSubmit = (e) => {
+  const handleProposalSubmit = async (e) => {
     e.preventDefault()
-    if (!proposalForm.title.trim() || !proposalForm.date) return
-
-    const newProposal = {
-      id: `EVP-${Math.floor(Math.random() * 900 + 200)}`,
-      ...proposalForm,
-      status: 'pending',
-      submittedBy: studentProfile.name,
-      studentId: studentProfile.id,
-      submittedAt: new Date().toISOString().split('T')[0],
-      section: studentProfile.section,
-      forwardedToAdmin: false
+    if (!proposalForm.title.trim() || !proposalForm.date) {
+      toast.error('Title and date are required')
+      return
     }
-    setProposals([newProposal, ...proposals])
-    setProposalForm({
-      title: '',
-      description: '',
-      date: '',
-      time: '',
-      location: '',
-      facultyInCharge: studentProfile.facultyMentor
-    })
+
+    try {
+      const payload = {
+        title: proposalForm.title.trim(),
+        description: proposalForm.description,
+        date: proposalForm.date,
+        time: proposalForm.time,
+        location: proposalForm.location,
+        facultyInCharge: proposalForm.facultyInCharge
+      }
+
+      const response = await createEventAPI(payload)
+
+      if (response?.status === 201) {
+        const newProposal = {
+          id: response.data.event._id,
+          ...proposalForm,
+          status: 'pending',
+          submittedBy: studentProfile.name,
+          studentId: studentProfile.id,
+          submittedAt: new Date().toISOString().split('T')[0],
+          section: studentProfile.section,
+          forwardedToAdmin: false
+        }
+        setProposals([newProposal, ...proposals])
+        toast.success('Event proposal submitted')
+        setProposalForm({
+          title: '',
+          description: '',
+          date: '',
+          time: '',
+          location: '',
+          facultyInCharge: studentProfile.facultyMentor
+        })
+      } else {
+        const message = response?.response?.data?.message || 'Failed to submit proposal'
+        toast.error(message)
+      }
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Something went wrong'
+      toast.error(message)
+    }
   }
 
   return (
