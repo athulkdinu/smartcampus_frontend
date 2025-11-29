@@ -26,7 +26,7 @@ export const assignmentWorkflows = [
       {
         id: 'SUB-9001',
         studentId: 'STU-2043',
-        studentName: 'Meera  K Dinu',
+        studentName: 'Athul k Dinu',
         fileName: 'landing-page.zip',
         fileUrl: '#',
         submittedOn: '2025-01-17 10:42 AM',
@@ -62,7 +62,7 @@ export const assignmentWorkflows = [
       {
         id: 'SUB-9010',
         studentId: 'STU-2043',
-        studentName: 'Meera  K Dinu',
+        studentName: 'Athul k Dinu',
         fileName: 'hospital-er.pdf',
         fileUrl: '#',
         submittedOn: '2025-01-14 08:30 PM',
@@ -104,7 +104,7 @@ export const leaveRequestTickets = [
   {
     id: 'LV-301',
     studentId: 'STU-2043',
-    studentName: 'Meera  K Dinu',
+    studentName: 'Athul k Dinu',
     section: 'CSE-2A',
     startDate: '2025-01-20',
     endDate: '2025-01-22',
@@ -117,7 +117,7 @@ export const leaveRequestTickets = [
   {
     id: 'LV-302',
     studentId: 'STU-2043',
-    studentName: 'Meera  K Dinu',
+    studentName: 'Athul k Dinu',
     section: 'CSE-2A',
     startDate: '2025-01-10',
     endDate: '2025-01-10',

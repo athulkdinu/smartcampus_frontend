@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import FacultyLayout from '../../shared/layouts/FacultyLayout'
@@ -51,6 +51,20 @@ const FacultyEventRequests = () => {
     }
   }
 
+  const { pendingRequests, approvedRequests, rejectedRequests } = useMemo(() => {
+    const sorted = [...requests].sort((a, b) => {
+      const da = a.date ? new Date(a.date) : new Date('2100-01-01')
+      const db = b.date ? new Date(b.date) : new Date('2100-01-01')
+      return da - db
+    })
+
+    return {
+      pendingRequests: sorted.filter(r => r.status === 'pending' || r.status === 'forwarded'),
+      approvedRequests: sorted.filter(r => r.status === 'approved'),
+      rejectedRequests: sorted.filter(r => r.status === 'rejected')
+    }
+  }, [requests])
+
   useEffect(() => {
     const loadRequests = async () => {
       try {
@@ -95,7 +109,7 @@ const FacultyEventRequests = () => {
           </div>
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <div className="px-4 py-2 rounded-2xl bg-emerald-50 text-emerald-700 text-sm font-semibold">
-              {requests.filter(request => request.status === 'pending').length} awaiting decision
+              {pendingRequests.length} awaiting decision
             </div>
             <button
               type="button"
@@ -229,64 +243,141 @@ const FacultyEventRequests = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6">
-          {requests.map((request, idx) => (
-            <motion.div
-              key={request.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-            >
-              <Card className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-500">{request.section}</p>
-                    <h3 className="text-xl font-semibold text-slate-900">{request.title}</h3>
-                    <p className="text-sm text-slate-500">by {request.submittedBy}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Pending / forwarded requests */}
+          <div className="space-y-4">
+            {pendingRequests.length === 0 && (
+              <div className="text-center py-8 text-slate-500 text-sm">
+                No pending requests. All student proposals are addressed.
+              </div>
+            )}
+            {pendingRequests.map((request, idx) => (
+              <motion.div
+                key={request.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+              >
+                <Card className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">{request.section}</p>
+                      <h3 className="text-xl font-semibold text-slate-900">{request.title}</h3>
+                      <p className="text-sm text-slate-500">by {request.submittedBy}</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${statusStyles[request.status] || statusStyles.pending}`}>
+                      {request.status}
+                    </span>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${statusStyles[request.status] || statusStyles.pending}`}>
-                    {request.status}
-                  </span>
+                  <p className="text-sm text-slate-600">{request.description}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                    <div className="p-3 rounded-xl bg-slate-50 flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-slate-500" />
+                      <span>{request.date}</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-slate-500" />
+                      <span>{request.time}</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-slate-500" />
+                      <span>{request.location}</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-slate-500" />
+                      <span>{request.facultyInCharge}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="success" onClick={() => handleAction(request.id, 'approved')}>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Approve
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => handleAction(request.id, 'rejected')}>
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Reject
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-purple-600 hover:text-purple-700" onClick={() => handleAction(request.id, 'forward')}>
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Forward to Admin
+                    </Button>
+                  </div>
+                  {request.forwardedToAdmin && (
+                    <p className="text-xs text-purple-600 font-semibold">Forwarded to Admin → Pending Approvals</p>
+                  )}
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Approved / Rejected summary like admin */}
+          <div className="space-y-6">
+            <Card className="border border-emerald-100 bg-emerald-50/60">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-emerald-600">Approved</p>
+                  <h3 className="text-xl font-bold text-emerald-900">Published Events</h3>
                 </div>
-                <p className="text-sm text-slate-600">{request.description}</p>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                  <div className="p-3 rounded-xl bg-slate-50 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-slate-500" />
-                    <span>{request.date}</span>
+                <span className="text-sm text-emerald-700 font-semibold">{approvedRequests.length}</span>
+              </div>
+              <div className="space-y-3">
+                {approvedRequests.map(request => (
+                  <div key={request.id} className="p-3 rounded-xl bg-white/80 border border-emerald-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-emerald-600">{request.section}</p>
+                        <h4 className="text-sm font-semibold text-emerald-900">{request.title}</h4>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                        Approved
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-800 line-clamp-2">{request.description}</p>
+                    <div className="flex flex-wrap gap-3 text-[11px] text-emerald-700">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" /> {request.date}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {request.time}
+                      </span>
+                    </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-slate-500" />
-                    <span>{request.time}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-slate-500" />
-                    <span>{request.location}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-slate-500" />
-                    <span>{request.facultyInCharge}</span>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="success" onClick={() => handleAction(request.id, 'approved')}>
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Approve
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => handleAction(request.id, 'rejected')}>
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Reject
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-purple-600 hover:text-purple-700" onClick={() => handleAction(request.id, 'forward')}>
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Forward to Admin
-                  </Button>
-                </div>
-                {request.forwardedToAdmin && (
-                  <p className="text-xs text-purple-600 font-semibold">Forwarded to Admin → Pending Approvals</p>
+                ))}
+                {approvedRequests.length === 0 && (
+                  <p className="text-sm text-emerald-700/70">No approved events yet.</p>
                 )}
-              </Card>
-            </motion.div>
-          ))}
+              </div>
+            </Card>
+
+            <Card className="border border-rose-100 bg-rose-50/60">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-rose-600">Rejected</p>
+                  <h3 className="text-xl font-bold text-rose-900">Request History</h3>
+                </div>
+                <span className="text-sm text-rose-700 font-semibold">{rejectedRequests.length}</span>
+              </div>
+              <div className="space-y-3">
+                {rejectedRequests.map(request => (
+                  <div key={request.id} className="p-3 rounded-xl bg-white/80 border border-rose-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-rose-600">{request.section}</p>
+                        <h4 className="text-sm font-semibold text-rose-900">{request.title}</h4>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
+                        Rejected
+                      </span>
+                    </div>
+                    <p className="text-xs text-rose-800 line-clamp-2">{request.description}</p>
+                  </div>
+                ))}
+                {rejectedRequests.length === 0 && (
+                  <p className="text-sm text-rose-700/70">No rejected events yet.</p>
+                )}
+              </div>
+            </Card>
+          </div>
         </div>
       </motion.div>
     </FacultyLayout>
