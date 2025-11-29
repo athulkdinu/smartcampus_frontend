@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import FacultyLayout from '../../shared/layouts/FacultyLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import { Calendar, MapPin, Clock, Sparkles, CheckCircle2, XCircle, Share2 } from 'lucide-react'
-import { eventProposals } from '../../shared/data/workflowData'
-import { createEventAPI } from '../../services/api'
+import { eventProposals as demoEventProposals } from '../../shared/data/workflowData'
+import { createEventAPI, getFacultyRequestsAPI, updateEventStatusAPI } from '../../services/api'
 
 const statusStyles = {
   pending: 'bg-amber-50 text-amber-700',
@@ -16,7 +16,7 @@ const statusStyles = {
 }
 
 const FacultyEventRequests = () => {
-  const [requests, setRequests] = useState(eventProposals)
+  const [requests, setRequests] = useState([])
   const [creating, setCreating] = useState(false)
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -27,18 +27,58 @@ const FacultyEventRequests = () => {
     facultyInCharge: '',
   })
 
-  const handleAction = (id, action) => {
-    setRequests(prev =>
-      prev.map(request => {
-        if (request.id !== id) return request
-        if (action === 'forward') {
-          return { ...request, status: 'forwarded', forwardedToAdmin: true }
-        }
-        return { ...request, status: action }
-      })
-    )
-    toast.success(`Event ${action === 'forward' ? 'forwarded to admin' : `${action}ed`}`)
+  const handleAction = async (id, action) => {
+    try {
+      const response = await updateEventStatusAPI(id, action)
+      if (response?.status === 200) {
+        setRequests(prev =>
+          prev.map(request => {
+            if (request.id !== id && request._id !== id) return request
+            if (action === 'forward') {
+              return { ...request, status: 'forwarded', forwardedToAdmin: true }
+            }
+            return { ...request, status: action }
+          })
+        )
+        toast.success(`Event ${action === 'forward' ? 'forwarded to admin' : `${action}ed`}`)
+      } else {
+        const message = response?.response?.data?.message || 'Update failed'
+        toast.error(message)
+      }
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Something went wrong'
+      toast.error(message)
+    }
   }
+
+  useEffect(() => {
+    const loadRequests = async () => {
+      try {
+        const res = await getFacultyRequestsAPI()
+        if (res?.status === 200) {
+          const backend = (res.data.events || []).map(ev => ({
+            id: ev._id,
+            title: ev.title,
+            description: ev.description,
+            date: ev.date,
+            time: ev.time,
+            location: ev.location,
+            facultyInCharge: ev.facultyInCharge,
+            status: ev.status,
+            section: ev.section,
+            submittedBy: ev.submittedByName,
+            forwardedToAdmin: ev.forwardedToAdmin,
+          }))
+          setRequests(backend)
+        } else {
+          setRequests(demoEventProposals)
+        }
+      } catch {
+        setRequests(demoEventProposals)
+      }
+    }
+    loadRequests()
+  }, [])
 
   return (
     <FacultyLayout>

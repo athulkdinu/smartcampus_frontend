@@ -22,6 +22,26 @@ export const createEventAPI = (data) => {
   return api.post("/api/events", data);
 };
 
+export const getStudentApprovedEventsAPI = () => {
+  return api.get("/api/events/student/approved");
+};
+
+export const getStudentProposalsAPI = () => {
+  return api.get("/api/events/student/proposals");
+};
+
+export const getFacultyRequestsAPI = () => {
+  return api.get("/api/events/faculty/requests");
+};
+
+export const updateEventStatusAPI = (id, action) => {
+  return api.patch(`/api/events/${id}/status`, { action });
+};
+
+export const getAdminEventsAPI = () => {
+  return api.get("/api/events/admin");
+};
+
 export default api;
 
 

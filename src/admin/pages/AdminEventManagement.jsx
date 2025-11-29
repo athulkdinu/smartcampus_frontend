@@ -1,17 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import AdminLayout from '../../shared/layouts/AdminLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import { Calendar, CheckCircle2, XCircle, Sparkles, User } from 'lucide-react'
-import { eventProposals } from '../../shared/data/workflowData'
-import { createEventAPI } from '../../services/api'
+import { eventProposals as demoEventProposals } from '../../shared/data/workflowData'
+import { createEventAPI, getAdminEventsAPI, updateEventStatusAPI } from '../../services/api'
 
 const AdminEventManagement = () => {
-  const [events, setEvents] = useState(
-    eventProposals.filter((event) => event.forwardedToAdmin)
-  )
+  const [events, setEvents] = useState([])
   const [showAddForm, setShowAddForm] = useState(false)
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -26,18 +24,65 @@ const AdminEventManagement = () => {
 
   const { pendingEvents, approvedEvents, rejectedEvents } = useMemo(() => {
     return {
-      pendingEvents: events.filter(event => ['pending', 'forwarded'].includes(event.status)),
+      pendingEvents: events.filter(
+        event =>
+          event.forwardedToAdmin &&
+          ['pending', 'forwarded'].includes(event.status)
+      ),
       approvedEvents: events.filter(event => event.status === 'approved'),
       rejectedEvents: events.filter(event => event.status === 'rejected')
     }
   }, [events])
 
-  const updateEventStatus = (id, status) => {
-    setEvents(prev =>
-      prev.map(event => (event.id === id ? { ...event, status } : event))
-    )
-    toast.success(`Event ${status}`)
+  const updateEventStatus = async (id, status) => {
+    try {
+      const response = await updateEventStatusAPI(id, status)
+      if (response?.status === 200) {
+        setEvents(prev =>
+          prev.map(event =>
+            event.id === id || event._id === id ? { ...event, status } : event
+          )
+        )
+        toast.success(`Event ${status}`)
+      } else {
+        const message = response?.response?.data?.message || 'Update failed'
+        toast.error(message)
+      }
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Something went wrong'
+      toast.error(message)
+    }
   }
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const res = await getAdminEventsAPI()
+        if (res?.status === 200) {
+          const backendEvents = (res.data.events || []).map(ev => ({
+            id: ev._id,
+            title: ev.title,
+            description: ev.description,
+            date: ev.date,
+            time: ev.time,
+            section: ev.section,
+            facultyInCharge: ev.facultyInCharge,
+            status: ev.status,
+            origin: ev.origin,
+            submittedBy: ev.submittedByName,
+            forwardedToAdmin: ev.forwardedToAdmin,
+          }))
+          setEvents(backendEvents)
+        } else {
+          setEvents(demoEventProposals.filter(e => e.forwardedToAdmin))
+        }
+      } catch {
+        setEvents(demoEventProposals.filter(e => e.forwardedToAdmin))
+      }
+    }
+
+    loadEvents()
+  }, [])
 
   const handleAddEvent = async (e) => {
     e.preventDefault()

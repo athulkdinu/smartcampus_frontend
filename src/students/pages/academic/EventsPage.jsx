@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import MainLayout from '../../../shared/layouts/MainLayout'
 import Card from '../../../shared/components/Card'
 import Button from '../../../shared/components/Button'
 import { Calendar, MapPin, Clock, Sparkles, ArrowRight } from 'lucide-react'
-import { events, studentEventProposals, studentProfile } from '../../data/academicData'
-import { createEventAPI } from '../../../services/api'
+import { events as demoEvents, studentEventProposals as demoProposals, studentProfile } from '../../data/academicData'
+import { createEventAPI, getStudentApprovedEventsAPI, getStudentProposalsAPI } from '../../../services/api'
 
 const EventsPage = () => {
   const typeColors = {
@@ -15,7 +15,8 @@ const EventsPage = () => {
     lecture: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' }
   }
 
-  const [proposals, setProposals] = useState(studentEventProposals)
+  const [approvedEvents, setApprovedEvents] = useState([])
+  const [proposals, setProposals] = useState([])
   const [proposalForm, setProposalForm] = useState({
     title: '',
     description: '',
@@ -82,6 +83,47 @@ const EventsPage = () => {
     }
   }
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [approvedRes, proposalsRes] = await Promise.all([
+          getStudentApprovedEventsAPI(),
+          getStudentProposalsAPI()
+        ])
+
+        if (approvedRes?.status === 200) {
+          setApprovedEvents(approvedRes.data.events || [])
+        } else {
+          setApprovedEvents(demoEvents)
+        }
+
+        if (proposalsRes?.status === 200) {
+          // map backend events to proposal card shape
+          const backendProposals = (proposalsRes.data.events || []).map(ev => ({
+            id: ev._id,
+            title: ev.title,
+            description: ev.description,
+            date: ev.date,
+            time: ev.time,
+            location: ev.location,
+            facultyInCharge: ev.facultyInCharge,
+            status: ev.status,
+            submittedAt: ev.createdAt?.slice(0, 10) || new Date().toISOString().split('T')[0],
+            section: ev.section || studentProfile.section
+          }))
+          setProposals(backendProposals)
+        } else {
+          setProposals(demoProposals)
+        }
+      } catch {
+        setApprovedEvents(demoEvents)
+        setProposals(demoProposals)
+      }
+    }
+
+    loadData()
+  }, [])
+
   return (
     <MainLayout>
       <motion.div
@@ -104,9 +146,9 @@ const EventsPage = () => {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: 'Total Events', value: events.length, color: 'from-purple-500 to-purple-600' },
-            { label: 'Upcoming', value: events.length, color: 'from-blue-500 to-blue-600' },
-            { label: 'This Month', value: events.filter(e => e.date.includes('2024')).length, color: 'from-indigo-500 to-indigo-600' }
+            { label: 'Total Events', value: approvedEvents.length, color: 'from-purple-500 to-purple-600' },
+            { label: 'Upcoming', value: approvedEvents.length, color: 'from-blue-500 to-blue-600' },
+            { label: 'This Month', value: approvedEvents.filter(e => e.date?.includes('2024')).length, color: 'from-indigo-500 to-indigo-600' }
           ].map((stat, idx) => (
             <motion.div
               key={idx}
@@ -131,7 +173,7 @@ const EventsPage = () => {
 
         {/* Events Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {events.map((event, idx) => {
+          {approvedEvents.map((event, idx) => {
             const colors = typeColors[event.type] || typeColors.lecture
             return (
               <motion.div
