@@ -6,9 +6,7 @@ import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
 import { User, Mail, Phone, MapPin, Save } from 'lucide-react'
-import { getProfileAPI, updateProfileAPI } from '../../services/api'
-
-const classOptions = ['CS1', 'CS2', 'CS3']
+import { getProfileAPI, updateStudentClassAPI, getAllClassesAdminAPI } from '../../services/api'
 const departmentOptions = ['Computer Science', 'Electronics', 'Mechanical', 'Civil']
 
 const ProfilePage = () => {
@@ -25,6 +23,7 @@ const ProfilePage = () => {
   })
 
   const [errors, setErrors] = useState({})
+  const [classOptions, setClassOptions] = useState([])
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -51,7 +50,19 @@ const ProfilePage = () => {
       }
     }
 
+    const loadClasses = async () => {
+      try {
+        const res = await getAllClassesAdminAPI()
+        if (res?.status === 200 && Array.isArray(res.data.classes)) {
+          setClassOptions(res.data.classes.map(c => c.className))
+        }
+      } catch {
+        setClassOptions(['CS1', 'CS2', 'CS3'])
+      }
+    }
+
     loadProfile()
+    loadClasses()
   }, [])
 
   const handleChange = (field, value) => {
@@ -85,7 +96,7 @@ const ProfilePage = () => {
         address: profile.address,
         department: profile.department
       }
-      const res = await updateProfileAPI(payload)
+      const res = await updateStudentClassAPI(payload)
       if (res?.status === 200) {
         toast.success('Profile updated successfully')
         if (res.data?.user) {

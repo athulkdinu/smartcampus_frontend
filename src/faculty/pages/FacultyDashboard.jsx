@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import FacultyLayout from '../../shared/layouts/FacultyLayout'
@@ -7,10 +7,26 @@ import Button from '../../shared/components/Button'
 import { BookOpen, Users, ClipboardList, Calendar, MessageSquare, Clock, AlertTriangle, Sparkles, ClipboardCheck } from 'lucide-react'
 import { getActiveFacultyProfile } from '../utils/getActiveFaculty'
 import { leaveRequestTickets, eventProposals, complaintTickets, assignmentWorkflows, skillProgramCatalogue } from '../../shared/data/workflowData'
+import { getFacultyClassesAPI } from '../../services/api'
 
 const FacultyDashboard = () => {
   const navigate = useNavigate()
+  const [facultyClasses, setFacultyClasses] = useState([])
   const selectedFaculty = useMemo(() => getActiveFacultyProfile(), [])
+
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        const res = await getFacultyClassesAPI()
+        if (res?.status === 200 && Array.isArray(res.data.classes)) {
+          setFacultyClasses(res.data.classes)
+        }
+      } catch {
+        // silently ignore, demo data will still show
+      }
+    }
+    loadClasses()
+  }, [])
 
   const statCards = [
     {

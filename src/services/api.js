@@ -50,6 +50,23 @@ export const updateProfileAPI = (data) => {
   return api.put("/api/auth/update-profile", data);
 };
 
+// class management
+export const getAllClassesAdminAPI = () => {
+  return api.get("/api/admin/classes/all");
+};
+
+export const createClassAPI = (data) => {
+  return api.post("/api/admin/classes", data);
+};
+
+export const getFacultyClassesAPI = () => {
+  return api.get("/api/admin/classes/faculty/my-classes");
+};
+
+export const updateStudentClassAPI = (data) => {
+  return api.put("/api/student/update-class", data);
+};
+
 export default api;
 
 

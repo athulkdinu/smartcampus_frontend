@@ -21,6 +21,7 @@ import HelpPage from './students/pages/HelpPage'
 import AdminDashboard from './admin/pages/AdminDashboard'
 import AdminUserManagement from './admin/pages/AdminUserManagement'
 import AdminEventManagement from './admin/pages/AdminEventManagement'
+import AdminClassManagement from './admin/pages/AdminClassManagement'
 import AdminComplaintManagement from './admin/pages/AdminComplaintManagement'
 import AdminCommunicationCenter from './admin/pages/AdminCommunicationCenter'
 import HRDashboard from './hr/pages/HRDashboard'
@@ -107,6 +108,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminEventManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/classes"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminClassManagement />
             </ProtectedRoute>
           }
         />
