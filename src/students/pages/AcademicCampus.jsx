@@ -1,13 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useMemo } from 'react'
-import { ArrowRight, Calendar, BookOpen, Bell, TrendingUp } from 'lucide-react'
+import { useMemo, useState, useEffect } from 'react'
+import { ArrowRight, Calendar, BookOpen, Bell, TrendingUp, Video, FileText } from 'lucide-react'
 import MainLayout from '../../shared/layouts/MainLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import {
   notices,
-  lectures,
   attendanceData,
   overallAttendance,
   assignments,
@@ -17,9 +16,30 @@ import {
   complaints,
   communications
 } from '../data/academicData'
+import { getStudentLecturesAPI } from '../../services/lectureAPI'
 
 const AcademicCampus = () => {
   const navigate = useNavigate()
+  const [lectureMaterials, setLectureMaterials] = useState([])
+  const [loadingLectures, setLoadingLectures] = useState(true)
+
+  useEffect(() => {
+    loadLectureMaterials()
+  }, [])
+
+  const loadLectureMaterials = async () => {
+    try {
+      setLoadingLectures(true)
+      const res = await getStudentLecturesAPI()
+      if (res?.status === 200) {
+        setLectureMaterials(res.data.lectureMaterials || [])
+      }
+    } catch (error) {
+      console.error('Error loading lecture materials:', error)
+    } finally {
+      setLoadingLectures(false)
+    }
+  }
 
   const pendingAssignments = assignments.filter(item => item.status !== 'submitted').length
 
@@ -70,7 +90,8 @@ const AcademicCampus = () => {
     { title: 'Complaints Desk', description: 'Raise infra/service concerns.', stat: `${complaints.length} tickets`, path: '/student/academic/complaints', icon: Bell }
   ]
 
-  const lectureHighlights = lectures.slice(0, 4)
+  // Get first 4 lecture materials for highlights
+  const lectureHighlights = lectureMaterials.slice(0, 4)
   const noticeHighlights = notices.slice(0, 3)
 
   const handleNavigate = (path) => navigate(path)
@@ -165,29 +186,59 @@ const AcademicCampus = () => {
                 Show more
               </Button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {lectureHighlights.map((lecture) => (
-                <div
-                  key={lecture.id}
-                  className="rounded-xl border border-slate-100 bg-slate-50 p-4 hover:bg-white hover:shadow-md transition-all cursor-pointer"
-                  onClick={() => handleNavigate('/student/academic/lectures')}
-                >
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                    <span className="font-medium">{lecture.subject}</span>
-                    <span className="px-2 py-0.5 rounded-full border border-slate-200 text-[10px] font-semibold">
-                      {lecture.type.toUpperCase()}
-                    </span>
-                  </div>
-                  <p className="text-base font-semibold text-slate-900 mb-1 line-clamp-1">{lecture.topic}</p>
-                  <p className="text-xs text-slate-500 mb-2">{lecture.instructor}</p>
-                  <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                    <span>{lecture.date}</span>
-                    <span>•</span>
-                    <span>{lecture.duration}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {loadingLectures ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-slate-500">Loading lecture materials...</p>
+              </div>
+            ) : lectureHighlights.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-sm text-slate-500">No lecture materials available yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {lectureHighlights.map((material) => {
+                  const hasVideo = !!material.videoUrl
+                  const hasFile = !!material.fileUrl
+                  const materialType = hasVideo ? 'video' : hasFile ? 'file' : 'text'
+                  
+                  return (
+                    <div
+                      key={material._id || material.id}
+                      className="rounded-xl border border-slate-100 bg-slate-50 p-4 hover:bg-white hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => handleNavigate('/student/academic/lectures')}
+                    >
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+                        <span className="font-medium">
+                          {material.classId?.className || material.module || 'Lecture Material'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full border border-slate-200 text-[10px] font-semibold flex items-center gap-1">
+                          {hasVideo && <Video className="w-3 h-3" />}
+                          {hasFile && !hasVideo && <FileText className="w-3 h-3" />}
+                          {materialType.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-base font-semibold text-slate-900 mb-1 line-clamp-1">{material.title}</p>
+                      {material.facultyId?.name && (
+                        <p className="text-xs text-slate-500 mb-2">{material.facultyId.name}</p>
+                      )}
+                      {material.module && (
+                        <p className="text-xs text-slate-500 mb-2">{material.module}</p>
+                      )}
+                      <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                        <span>{new Date(material.createdAt).toLocaleDateString()}</span>
+                        {material.description && (
+                          <>
+                            <span>•</span>
+                            <span className="line-clamp-1">{material.description}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </Card>
           <Card>
             <div className="flex items-center justify-between mb-6">

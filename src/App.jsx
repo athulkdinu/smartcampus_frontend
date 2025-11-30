@@ -24,6 +24,7 @@ import AdminEventManagement from './admin/pages/AdminEventManagement'
 import AdminClassManagement from './admin/pages/AdminClassManagement'
 import AdminComplaintManagement from './admin/pages/AdminComplaintManagement'
 import AdminCommunicationCenter from './admin/pages/AdminCommunicationCenter'
+import AdminExamManagement from './admin/pages/AdminExamManagement'
 import HRDashboard from './hr/pages/HRDashboard'
 import HRCreateJob from './hr/pages/HRCreateJob'
 import HRManageJobs from './hr/pages/HRManageJobs'
@@ -133,6 +134,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminCommunicationCenter />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/exams"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminExamManagement />
             </ProtectedRoute>
           }
         />

@@ -1,24 +1,56 @@
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { toast } from 'react-hot-toast'
 import MainLayout from '../../../shared/layouts/MainLayout'
 import Card from '../../../shared/components/Card'
 import Button from '../../../shared/components/Button'
 import { Award, Download, TrendingUp, FileText, ClipboardList, BookOpen, BarChart3 } from 'lucide-react'
-import { gradesData } from '../../data/academicData'
+import { getStudentGradesAPI } from '../../../services/gradeAPI'
 
 const GradesPage = () => {
-  const categoryIcons = {
-    assignments: FileText,
-    quizzes: ClipboardList,
-    exams: BookOpen
+  const [grades, setGrades] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadGrades()
+  }, [])
+
+  const loadGrades = async () => {
+    try {
+      setLoading(true)
+      const res = await getStudentGradesAPI()
+      if (res?.status === 200) {
+        setGrades(res.data.grades || [])
+      } else {
+        toast.error('Failed to load grades')
+      }
+    } catch (error) {
+      console.error('Error loading grades:', error)
+      toast.error('Failed to load grades')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Calculate overall statistics
-  const totalSubjects = gradesData.length
-  const avgGrade = gradesData.reduce((sum, s) => {
-    const gradeValue = s.overall === 'A' ? 4.0 : s.overall === 'A-' ? 3.7 : s.overall === 'B+' ? 3.3 : s.overall === 'B' ? 3.0 : 2.5
-    return sum + gradeValue
-  }, 0) / totalSubjects
-  const totalAssessments = gradesData.reduce((sum, s) => sum + s.assignments.length + s.quizzes.length + s.exams.length, 0)
+  // Group grades by subject
+  const gradesBySubject = grades.reduce((acc, grade) => {
+    if (!acc[grade.subject]) {
+      acc[grade.subject] = []
+    }
+    acc[grade.subject].push(grade)
+    return acc
+  }, {})
+
+  // Calculate statistics
+  const totalSubjects = Object.keys(gradesBySubject).length
+  const totalAssessments = grades.length
+  const gradesWithValues = grades.filter(g => g.grade && g.grade.grade)
+  const avgGradeValue = gradesWithValues.length > 0
+    ? gradesWithValues.reduce((sum, g) => {
+        const gradeMap = { 'A+': 4.0, 'A': 4.0, 'A-': 3.7, 'B+': 3.3, 'B': 3.0, 'B-': 2.7, 'C+': 2.3, 'C': 2.0, 'C-': 1.7, 'D': 1.0, 'F': 0.0 }
+        return sum + (gradeMap[g.grade.grade] || 0)
+      }, 0) / gradesWithValues.length
+    : 0
 
   return (
     <MainLayout>
@@ -44,9 +76,9 @@ const GradesPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
             { label: 'Total Subjects', value: totalSubjects, icon: BookOpen, color: 'from-blue-500 to-blue-600' },
-            { label: 'Average Grade', value: avgGrade.toFixed(1), icon: BarChart3, color: 'from-indigo-500 to-indigo-600' },
+            { label: 'Average GPA', value: avgGradeValue.toFixed(2), icon: BarChart3, color: 'from-indigo-500 to-indigo-600' },
             { label: 'Total Assessments', value: totalAssessments, icon: ClipboardList, color: 'from-purple-500 to-purple-600' },
-            { label: 'Overall GPA', value: avgGrade.toFixed(2), icon: Award, color: 'from-emerald-500 to-emerald-600' }
+            { label: 'Graded', value: gradesWithValues.length, icon: Award, color: 'from-emerald-500 to-emerald-600' }
           ].map((stat, idx) => {
             const Icon = stat.icon
             return (
@@ -72,75 +104,110 @@ const GradesPage = () => {
           })}
         </div>
 
-        {/* Subject Cards */}
-        <div className="grid grid-cols-1 gap-6">
-          {gradesData.map((subject, idx) => (
-            <motion.div
-              key={subject.subject}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-            >
-              <Card className="overflow-hidden">
-                {/* Subject Header */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 pb-6 border-b border-slate-100">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <Award className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Subject</p>
-                      <h2 className="text-2xl font-bold text-slate-900">{subject.subject}</h2>
-                    </div>
-                  </div>
-                  <div className="text-center md:text-right">
-                    <p className="text-xs text-slate-500 mb-1">Overall Grade</p>
-                    <p className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                      {subject.overall}
-                    </p>
-                  </div>
-                </div>
+        {/* Grades by Subject */}
+        {loading ? (
+          <Card>
+            <div className="text-center py-12">
+              <p className="text-slate-500">Loading grades...</p>
+            </div>
+          </Card>
+        ) : Object.keys(gradesBySubject).length === 0 ? (
+          <Card>
+            <div className="text-center py-12">
+              <Award className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500">No grades available yet</p>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {Object.entries(gradesBySubject).map(([subject, subjectGrades], idx) => {
+              // Calculate overall grade for this subject (average of all assessments)
+              const gradedAssessments = subjectGrades.filter(g => g.grade && g.grade.grade)
+              const overallGrade = gradedAssessments.length > 0
+                ? gradedAssessments[gradedAssessments.length - 1].grade.grade // Use latest grade as overall
+                : 'Pending'
 
-                {/* Category Breakdown */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {['assignments', 'quizzes', 'exams'].map((category) => {
-                    const Icon = categoryIcons[category]
-                    return (
-                      <div key={category} className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                            <Icon className="w-5 h-5 text-slate-600" />
-                          </div>
-                          <h3 className="text-sm font-bold text-slate-900 capitalize">{category}</h3>
+              return (
+                <motion.div
+                  key={subject}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                >
+                  <Card className="overflow-hidden">
+                    {/* Subject Header */}
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 pb-6 border-b border-slate-100">
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                          <Award className="w-8 h-8 text-white" />
                         </div>
-                        <div className="space-y-3">
-                          {subject[category].map((item, i) => (
-                            <motion.div
-                              key={i}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: (idx * 0.1) + (i * 0.05) }}
-                              className="p-4 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-sm transition-all"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                                <span className="text-base font-bold text-blue-600">{item.grade}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-slate-500">
-                                <TrendingUp className="w-3 h-3" />
-                                <span>{item.obtained} / {item.maxGrade} points</span>
-                              </div>
-                            </motion.div>
-                          ))}
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Subject</p>
+                          <h2 className="text-2xl font-bold text-slate-900">{subject}</h2>
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+                      <div className="text-center md:text-right">
+                        <p className="text-xs text-slate-500 mb-1">Overall Grade</p>
+                        <p className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                          {overallGrade}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Assessments List */}
+                    <div className="space-y-4">
+                      {subjectGrades.map((gradeItem, i) => {
+                        const hasGrade = gradeItem.grade && gradeItem.grade.grade
+                        const Icon = gradeItem.examType?.toLowerCase().includes('exam') ? BookOpen :
+                                     gradeItem.examType?.toLowerCase().includes('quiz') ? ClipboardList : FileText
+
+                        return (
+                          <motion.div
+                            key={gradeItem._id || i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: (idx * 0.1) + (i * 0.05) }}
+                            className="p-4 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-sm transition-all"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                                  <Icon className="w-5 h-5 text-slate-600" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-900">{gradeItem.title}</p>
+                                  <p className="text-xs text-slate-500">{gradeItem.examType}</p>
+                                </div>
+                              </div>
+                              {hasGrade ? (
+                                <span className="text-base font-bold text-blue-600">{gradeItem.grade.grade}</span>
+                              ) : (
+                                <span className="text-sm text-amber-600">Pending</span>
+                              )}
+                            </div>
+                            {hasGrade && (
+                              <div className="flex items-center gap-2 text-xs text-slate-500 mt-2">
+                                <TrendingUp className="w-3 h-3" />
+                                <span>
+                                  {gradeItem.grade.obtainedScore} / {gradeItem.grade.maxScore} points
+                                </span>
+                                <span>•</span>
+                                <span>Published: {new Date(gradeItem.grade.updatedAt).toLocaleDateString()}</span>
+                              </div>
+                            )}
+                            {!hasGrade && (
+                              <p className="text-xs text-slate-400 mt-2">Grade not yet published</p>
+                            )}
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  </Card>
+                </motion.div>
+              )
+            })}
+          </div>
+        )}
       </motion.div>
     </MainLayout>
   )
