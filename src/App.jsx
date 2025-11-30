@@ -15,6 +15,7 @@ import EventsPage from './students/pages/academic/EventsPage'
 import MessagesPage from './students/pages/academic/MessagesPage'
 import NotificationsPage from './students/pages/academic/NotificationsPage'
 import SkillsPage from './students/pages/SkillsPage'
+import SkillProgressionPage from './students/pages/SkillProgressionPage'
 import PlacementPage from './students/pages/PlacementPage'
 import ProfilePage from './students/pages/ProfilePage'
 import HelpPage from './students/pages/HelpPage'
@@ -76,6 +77,7 @@ function App() {
         <Route path="/student/academic/messages" element={<MessagesPage />} />
         <Route path="/student/academic/notifications" element={<NotificationsPage />} />
         <Route path="/student/skills" element={<SkillsPage />} />
+        <Route path="/student/skills/:skillId" element={<SkillProgressionPage />} />
         <Route path="/student/placement" element={<PlacementPage />} />
         <Route
           path="/student/profile"

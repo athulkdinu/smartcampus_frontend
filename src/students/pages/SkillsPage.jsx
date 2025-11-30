@@ -1,24 +1,306 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import MainLayout from '../../shared/layouts/MainLayout'
 import Card from '../../shared/components/Card'
-import Button from '../../shared/components/Button'
-import { BookOpen, Award, TrendingUp, CheckCircle2, UploadCloud } from 'lucide-react'
-import { skillPrograms } from '../data/academicData'
+import SkillSummaryCards from '../components/skills/SkillSummaryCards'
+import SkillCards from '../components/skills/SkillCards'
+import RecommendedSkills from '../components/skills/RecommendedSkills'
 
 const SkillsPage = () => {
-  const skills = [
-    { name: 'JavaScript Fundamentals', progress: 85, status: 'In Progress', category: 'Programming' },
-    { name: 'React Development', progress: 70, status: 'In Progress', category: 'Programming' },
-    { name: 'Node.js Backend', progress: 60, status: 'In Progress', category: 'Programming' },
-    { name: 'UI/UX Design', progress: 90, status: 'Completed', category: 'Design' },
-    { name: 'Data Structures', progress: 100, status: 'Completed', category: 'Computer Science' },
-    { name: 'Machine Learning Basics', progress: 45, status: 'In Progress', category: 'AI/ML' }
-  ]
+  const navigate = useNavigate()
+  
+  // Mock skills data with rounds structure
+  const [skills, setSkills] = useState([
+    {
+      id: '1',
+      name: 'Python Programming',
+      category: 'Programming',
+      status: 'In Progress',
+      currentRound: 2,
+      totalRounds: 4,
+      progress: 50,
+      rounds: [
+        {
+          roundNumber: 1,
+          title: 'Basics & Fundamentals',
+          tasks: [
+            { id: '1-1', title: 'Complete Python syntax basics', description: 'Learn variables, data types, and operators', completed: true },
+            { id: '1-2', title: 'Practice with loops and conditionals', description: 'Write 10 practice programs', completed: true },
+            { id: '1-3', title: 'Build a calculator project', description: 'Create a simple calculator using Python', completed: true }
+          ]
+        },
+        {
+          roundNumber: 2,
+          title: 'Practice & Exercises',
+          tasks: [
+            { id: '2-1', title: 'Learn functions and modules', description: 'Understand function definitions and imports', completed: true },
+            { id: '2-2', title: 'Work with file operations', description: 'Read and write files in Python', completed: false },
+            { id: '2-3', title: 'Complete 5 coding challenges', description: 'Solve problems on HackerRank', completed: false }
+          ]
+        },
+        {
+          roundNumber: 3,
+          title: 'Project Development',
+          tasks: [
+            { id: '3-1', title: 'Design a project plan', description: 'Plan your Python project', completed: false },
+            { id: '3-2', title: 'Implement core features', description: 'Build main functionality', completed: false },
+            { id: '3-3', title: 'Add error handling', description: 'Implement try-except blocks', completed: false }
+          ]
+        },
+        {
+          roundNumber: 4,
+          title: 'Final Test & Certification',
+          tasks: [
+            { id: '4-1', title: 'Take final assessment', description: 'Complete the skill assessment test', completed: false },
+            { id: '4-2', title: 'Submit project for review', description: 'Get your project reviewed by mentor', completed: false },
+            { id: '4-3', title: 'Earn certificate', description: 'Receive your completion certificate', completed: false }
+          ]
+        }
+      ]
+    },
+    {
+      id: '2',
+      name: 'React Development',
+      category: 'Web Development',
+      status: 'In Progress',
+      currentRound: 1,
+      totalRounds: 4,
+      progress: 25,
+      rounds: [
+        {
+          roundNumber: 1,
+          title: 'React Fundamentals',
+          tasks: [
+            { id: '2-1-1', title: 'Learn JSX and components', description: 'Understand React component structure', completed: true },
+            { id: '2-1-2', title: 'Practice with props and state', description: 'Build components with dynamic data', completed: false },
+            { id: '2-1-3', title: 'Complete React tutorial', description: 'Finish official React tutorial', completed: false }
+          ]
+        },
+        {
+          roundNumber: 2,
+          title: 'Hooks & State Management',
+          tasks: [
+            { id: '2-2-1', title: 'Master useState and useEffect', description: 'Learn React hooks', completed: false },
+            { id: '2-2-2', title: 'Implement Context API', description: 'Build app with context', completed: false },
+            { id: '2-2-3', title: 'Learn custom hooks', description: 'Create reusable hooks', completed: false }
+          ]
+        },
+        {
+          roundNumber: 3,
+          title: 'Advanced Concepts',
+          tasks: [
+            { id: '2-3-1', title: 'Learn React Router', description: 'Implement routing', completed: false },
+            { id: '2-3-2', title: 'State management with Redux', description: 'Integrate Redux', completed: false },
+            { id: '2-3-3', title: 'Performance optimization', description: 'Optimize React apps', completed: false }
+          ]
+        },
+        {
+          roundNumber: 4,
+          title: 'Final Project',
+          tasks: [
+            { id: '2-4-1', title: 'Build a full-stack app', description: 'Create complete React application', completed: false },
+            { id: '2-4-2', title: 'Deploy to production', description: 'Deploy your React app', completed: false },
+            { id: '2-4-3', title: 'Get certified', description: 'Receive React developer certificate', completed: false }
+          ]
+        }
+      ]
+    },
+    {
+      id: '3',
+      name: 'UI/UX Design',
+      category: 'Design',
+      status: 'Completed',
+      currentRound: 4,
+      totalRounds: 4,
+      progress: 100,
+      rounds: [
+        {
+          roundNumber: 1,
+          title: 'Design Principles',
+          tasks: [
+            { id: '3-1-1', title: 'Learn design fundamentals', description: 'Study color theory and typography', completed: true },
+            { id: '3-1-2', title: 'Practice with design tools', description: 'Master Figma basics', completed: true },
+            { id: '3-1-3', title: 'Create mood boards', description: 'Design inspiration boards', completed: true }
+          ]
+        },
+        {
+          roundNumber: 2,
+          title: 'User Research',
+          tasks: [
+            { id: '3-2-1', title: 'Conduct user interviews', description: 'Interview 5 users', completed: true },
+            { id: '3-2-2', title: 'Create user personas', description: 'Build persona profiles', completed: true },
+            { id: '3-2-3', title: 'Design user journey maps', description: 'Map user flows', completed: true }
+          ]
+        },
+        {
+          roundNumber: 3,
+          title: 'Prototyping',
+          tasks: [
+            { id: '3-3-1', title: 'Create wireframes', description: 'Design low-fidelity prototypes', completed: true },
+            { id: '3-3-2', title: 'Build high-fidelity designs', description: 'Create detailed mockups', completed: true },
+            { id: '3-3-3', title: 'Prototype interactions', description: 'Add animations and transitions', completed: true }
+          ]
+        },
+        {
+          roundNumber: 4,
+          title: 'Portfolio & Certification',
+          tasks: [
+            { id: '3-4-1', title: 'Build design portfolio', description: 'Showcase your work', completed: true },
+            { id: '3-4-2', title: 'Present to design team', description: 'Get feedback on portfolio', completed: true },
+            { id: '3-4-3', title: 'Earn UI/UX certificate', description: 'Receive completion certificate', completed: true }
+          ]
+        }
+      ]
+    },
+    {
+      id: '4',
+      name: 'Data Structures & Algorithms',
+      category: 'Computer Science',
+      status: 'Not Started',
+      currentRound: 0,
+      totalRounds: 4,
+      progress: 0,
+      rounds: [
+        {
+          roundNumber: 1,
+          title: 'Introduction to DSA',
+          tasks: [
+            { id: '4-1-1', title: 'Learn basic data structures', description: 'Arrays, linked lists, stacks, queues', completed: false },
+            { id: '4-1-2', title: 'Understand time complexity', description: 'Big O notation basics', completed: false },
+            { id: '4-1-3', title: 'Solve 10 easy problems', description: 'Practice on LeetCode', completed: false }
+          ]
+        },
+        {
+          roundNumber: 2,
+          title: 'Intermediate Algorithms',
+          tasks: [
+            { id: '4-2-1', title: 'Master sorting algorithms', description: 'Quick sort, merge sort, etc.', completed: false },
+            { id: '4-2-2', title: 'Learn tree structures', description: 'Binary trees, BST, AVL', completed: false },
+            { id: '4-2-3', title: 'Solve 20 medium problems', description: 'LeetCode medium challenges', completed: false }
+          ]
+        },
+        {
+          roundNumber: 3,
+          title: 'Advanced Topics',
+          tasks: [
+            { id: '4-3-1', title: 'Graph algorithms', description: 'DFS, BFS, shortest paths', completed: false },
+            { id: '4-3-2', title: 'Dynamic programming', description: 'DP patterns and problems', completed: false },
+            { id: '4-3-3', title: 'Solve 15 hard problems', description: 'Advanced LeetCode challenges', completed: false }
+          ]
+        },
+        {
+          roundNumber: 4,
+          title: 'Final Assessment',
+          tasks: [
+            { id: '4-4-1', title: 'Take DSA assessment', description: 'Complete final test', completed: false },
+            { id: '4-4-2', title: 'System design basics', description: 'Learn system design principles', completed: false },
+            { id: '4-4-3', title: 'Get DSA certificate', description: 'Receive completion certificate', completed: false }
+          ]
+        }
+      ]
+    }
+  ])
 
+  const [stats, setStats] = useState({
+    completed: 0,
+    inProgress: 0,
+    certificates: 0,
+    learningHours: '142h / 2,450 XP'
+  })
+
+  // Calculate stats from skills
+  useEffect(() => {
+    const completed = skills.filter(s => s.status === 'Completed').length
+    const inProgress = skills.filter(s => s.status === 'In Progress').length
+    const certificates = completed // Assuming one certificate per completed skill
+    
+    setStats({
+      completed,
+      inProgress,
+      certificates,
+      learningHours: '142h / 2,450 XP'
+    })
+  }, [skills])
+
+  const handleContinue = (skillId) => {
+    // Navigate to skill progression page
+    navigate(`/student/skills/${skillId}`)
+  }
+
+
+  const handleStatCardClick = (label) => {
+    // Future: Filter skills based on stat clicked
+    console.log('Clicked stat:', label)
+  }
+
+  const handleEnroll = (skillId) => {
+    // Future: Handle enrollment
+    console.log('Enroll in skill:', skillId)
+  }
+
+  // Recommended skills mock data
   const recommendedSkills = [
-    { name: 'Python Programming', category: 'Programming', students: 1200 },
-    { name: 'Cloud Computing', category: 'Technology', students: 850 },
-    { name: 'DevOps Fundamentals', category: 'Technology', students: 650 }
+    {
+      id: 'rec-1',
+      title: 'Machine Learning Basics',
+      category: 'AI/ML',
+      description: 'Learn the fundamentals of machine learning and build your first ML models',
+      difficulty: 'Intermediate',
+      duration: '6 weeks',
+      status: 'Published',
+      startDate: 'Available Now'
+    },
+    {
+      id: 'rec-2',
+      title: 'Cloud Computing with AWS',
+      category: 'Technology',
+      description: 'Master cloud infrastructure and deploy scalable applications on AWS',
+      difficulty: 'Advanced',
+      duration: '8 weeks',
+      status: 'Published',
+      startDate: 'Available Now'
+    },
+    {
+      id: 'rec-3',
+      title: 'DevOps Fundamentals',
+      category: 'Technology',
+      description: 'Learn CI/CD, Docker, Kubernetes, and modern DevOps practices',
+      difficulty: 'Intermediate',
+      duration: '5 weeks',
+      status: 'Upcoming',
+      startDate: 'Starts Feb 15, 2025'
+    },
+    {
+      id: 'rec-4',
+      title: 'Mobile App Development',
+      category: 'Development',
+      description: 'Build cross-platform mobile apps using React Native',
+      difficulty: 'Intermediate',
+      duration: '7 weeks',
+      status: 'Published',
+      startDate: 'Available Now'
+    },
+    {
+      id: 'rec-5',
+      title: 'Blockchain Development',
+      category: 'Technology',
+      description: 'Learn blockchain technology and smart contract development',
+      difficulty: 'Advanced',
+      duration: '10 weeks',
+      status: 'Upcoming',
+      startDate: 'Starts Mar 1, 2025'
+    },
+    {
+      id: 'rec-6',
+      title: 'Cybersecurity Essentials',
+      category: 'Security',
+      description: 'Master security fundamentals and protect applications from threats',
+      difficulty: 'Intermediate',
+      duration: '6 weeks',
+      status: 'Published',
+      startDate: 'Available Now'
+    }
   ]
 
   return (
@@ -26,166 +308,37 @@ const SkillsPage = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
+        className="space-y-8"
       >
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        {/* Page Header */}
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Skills & Learning</h1>
-            <p className="text-slate-600">Track your skill development and explore new learning opportunities</p>
-          </div>
-          <Button variant="primary">Browse All Courses</Button>
+          <h1 className="text-4xl font-bold text-slate-900 mb-2">Skills & Learning</h1>
+          <p className="text-slate-600 text-lg">Level up your skills with gamified learning paths</p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[
-            { label: 'Skills Completed', value: 12, icon: CheckCircle2, color: 'from-green-500 to-green-600' },
-            { label: 'In Progress', value: 8, icon: TrendingUp, color: 'from-blue-500 to-blue-600' },
-            { label: 'Certificates', value: 5, icon: Award, color: 'from-purple-500 to-purple-600' },
-            { label: 'Learning Hours', value: '142h', icon: BookOpen, color: 'from-indigo-500 to-indigo-600' }
-          ].map((stat, idx) => {
-            const Icon = stat.icon
-            return (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-              >
-                <Card>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-600 mb-1">{stat.label}</p>
-                      <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-                    </div>
-                    <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center`}>
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            )
-          })}
+        {/* Section 1: Summary Cards */}
+        <SkillSummaryCards stats={stats} onCardClick={handleStatCardClick} />
+
+        {/* Section 2: My Skills */}
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">My Skills</h2>
+          <SkillCards
+            skills={skills}
+            onContinue={handleContinue}
+            expandedSkillId={null}
+          />
         </div>
 
-        {/* My Skills */}
-        <Card>
-          <h2 className="text-xl font-bold text-slate-900 mb-6">My Skills</h2>
-          <div className="space-y-4">
-            {skills.map((skill, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className="p-4 rounded-xl border border-slate-100 bg-slate-50"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <h3 className="font-semibold text-slate-900">{skill.name}</h3>
-                    <p className="text-sm text-slate-500">{skill.category}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    skill.status === 'Completed' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {skill.status}
-                  </span>
-                </div>
-                <div className="mt-3">
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-slate-600">Progress</span>
-                    <span className="font-semibold text-slate-900">{skill.progress}%</span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${skill.progress}%` }}
-                      transition={{ duration: 1, delay: idx * 0.1 }}
-                      className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full"
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Recommended Skills */}
-        <Card>
-          <h2 className="text-xl font-bold text-slate-900 mb-6">Recommended for You</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {recommendedSkills.map((skill, idx) => (
-              <motion.div
-                key={idx}
-                whileHover={{ y: -4 }}
-                className="p-4 rounded-xl border border-slate-100 bg-white hover:border-blue-200 hover:shadow-md transition cursor-pointer"
-              >
-                <h3 className="font-semibold text-slate-900 mb-1">{skill.name}</h3>
-                <p className="text-sm text-slate-500 mb-3">{skill.category}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">{skill.students} students enrolled</span>
-                  <Button variant="ghost" size="sm">Enroll</Button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Faculty Published Skill Programs */}
-        <Card>
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+        {/* Section 4: Recommended Skills */}
             <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Faculty curated</p>
-              <h2 className="text-2xl font-bold text-slate-900">Skill Program Library</h2>
-              <p className="text-slate-600 text-sm">Everything faculty publish inside SmartCampus shows up here instantly.</p>
-            </div>
-            
+          <RecommendedSkills
+            recommendedSkills={recommendedSkills}
+            onEnroll={handleEnroll}
+          />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {skillPrograms.map((program) => (
-              <motion.div
-                key={program.id}
-                whileHover={{ y: -4 }}
-                className="rounded-2xl border border-slate-100 bg-white/80 p-4 flex flex-col gap-3"
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-slate-900">{program.title}</h3>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
-                    program.status === 'published'
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : program.status === 'upcoming'
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {program.status}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600 line-clamp-3">{program.description}</p>
-                <div className="text-xs text-slate-500 space-y-1">
-                  <p><strong className="text-slate-700">Duration:</strong> {program.duration}</p>
-                  <p><strong className="text-slate-700">Mode:</strong> {program.format}</p>
-                  <p><strong className="text-slate-700">Faculty:</strong> {program.createdBy}</p>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-                  {program.materials.map((material) => (
-                    <span key={material} className="px-3 py-1 rounded-full bg-slate-100 text-slate-700">
-                      {material}
-                    </span>
-                  ))}
-                </div>
-                <Button variant="ghost" size="sm">
-                  View Program
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-        </Card>
       </motion.div>
     </MainLayout>
   )
 }
 
 export default SkillsPage
-
