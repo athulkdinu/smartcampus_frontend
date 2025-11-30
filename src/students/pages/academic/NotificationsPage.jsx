@@ -29,7 +29,8 @@ const NotificationsPage = () => {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Notification Center</h1>
+            <p className="text-sm uppercase tracking-wide text-slate-500">Academic & Campus</p>
+            <h1 className="text-3xl font-bold text-slate-900">Notification Center</h1>
             <p className="text-slate-600">All alerts, exam circulars, placement notifications and campus broadcasts</p>
           </div>
           <Button variant="secondary">

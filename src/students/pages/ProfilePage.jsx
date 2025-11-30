@@ -6,7 +6,8 @@ import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
 import { User, Mail, Phone, MapPin, Save } from 'lucide-react'
-import { getProfileAPI, updateStudentClassAPI, getAllClassesAdminAPI } from '../../services/api'
+import { getProfileAPI, updateStudentClassAPI } from '../../services/api'
+import { getAllClassesAPI } from '../../services/classAPI'
 const departmentOptions = ['Computer Science', 'Electronics', 'Mechanical', 'Civil']
 
 const ProfilePage = () => {
@@ -52,12 +53,12 @@ const ProfilePage = () => {
 
     const loadClasses = async () => {
       try {
-        const res = await getAllClassesAdminAPI()
+        const res = await getAllClassesAPI()
         if (res?.status === 200 && Array.isArray(res.data.classes)) {
           setClassOptions(res.data.classes.map(c => c.className))
         }
       } catch {
-        setClassOptions(['CS1', 'CS2', 'CS3'])
+        setClassOptions([])
       }
     }
 

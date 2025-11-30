@@ -27,7 +27,8 @@ const ComplaintsPage = () => {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Complaints Desk</h1>
+            <p className="text-sm uppercase tracking-wide text-slate-500">Academic & Campus</p>
+            <h1 className="text-3xl font-bold text-slate-900">Complaints Desk</h1>
             <p className="text-slate-600">Raise infrastructure or academic concerns and track resolution</p>
           </div>
           <Button variant="primary" onClick={() => setShowModal(true)}>

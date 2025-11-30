@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import MainLayout from '../../../shared/layouts/MainLayout'
 import Card from '../../../shared/components/Card'
 import Button from '../../../shared/components/Button'
-import { Award, Download, TrendingUp, FileText, ClipboardList, BookOpen } from 'lucide-react'
+import { Award, Download, TrendingUp, FileText, ClipboardList, BookOpen, BarChart3 } from 'lucide-react'
 import { gradesData } from '../../data/academicData'
 
 const GradesPage = () => {
@@ -11,6 +11,14 @@ const GradesPage = () => {
     quizzes: ClipboardList,
     exams: BookOpen
   }
+
+  // Calculate overall statistics
+  const totalSubjects = gradesData.length
+  const avgGrade = gradesData.reduce((sum, s) => {
+    const gradeValue = s.overall === 'A' ? 4.0 : s.overall === 'A-' ? 3.7 : s.overall === 'B+' ? 3.3 : s.overall === 'B' ? 3.0 : 2.5
+    return sum + gradeValue
+  }, 0) / totalSubjects
+  const totalAssessments = gradesData.reduce((sum, s) => sum + s.assignments.length + s.quizzes.length + s.exams.length, 0)
 
   return (
     <MainLayout>
@@ -22,13 +30,46 @@ const GradesPage = () => {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Academic Grades</h1>
+            <p className="text-sm uppercase tracking-wide text-slate-500">Academic & Campus</p>
+            <h1 className="text-3xl font-bold text-slate-900">Academic Grades</h1>
             <p className="text-slate-600">Subject-wise breakdown, assessments and detailed feedback</p>
           </div>
           <Button variant="primary">
             <Download className="w-4 h-4 mr-2" />
             Download Transcript
           </Button>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[
+            { label: 'Total Subjects', value: totalSubjects, icon: BookOpen, color: 'from-blue-500 to-blue-600' },
+            { label: 'Average Grade', value: avgGrade.toFixed(1), icon: BarChart3, color: 'from-indigo-500 to-indigo-600' },
+            { label: 'Total Assessments', value: totalAssessments, icon: ClipboardList, color: 'from-purple-500 to-purple-600' },
+            { label: 'Overall GPA', value: avgGrade.toFixed(2), icon: Award, color: 'from-emerald-500 to-emerald-600' }
+          ].map((stat, idx) => {
+            const Icon = stat.icon
+            return (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+              >
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">{stat.label}</p>
+                      <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+                    </div>
+                    <div className={`w-14 h-14 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                      <Icon className="w-7 h-7 text-white" />
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            )
+          })}
         </div>
 
         {/* Subject Cards */}

@@ -11,7 +11,10 @@ import {
   MessageSquare,
   Sparkles,
   AlertTriangle,
-  Bell
+  Bell,
+  FileText,
+  GraduationCap,
+  ChevronRight
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -21,6 +24,11 @@ const FacultyLayout = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [expandedSections, setExpandedSections] = useState({
+    teaching: true,
+    students: true,
+    events: true
+  })
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -33,17 +41,41 @@ const FacultyLayout = ({ children }) => {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/faculty/dashboard' },
-    { icon: BookOpen, label: 'Academic Management', path: '/faculty/academic' },
-    { icon: Users, label: 'Students', path: '/faculty/students' },
-    { icon: ClipboardList, label: 'Grading', path: '/faculty/grading' },
-    { icon: Calendar, label: 'Attendance', path: '/faculty/attendance' },
-    { icon: CalendarCheck, label: 'Leave Requests', path: '/faculty/leave-requests' },
-    { icon: AlertTriangle, label: 'Complaints Center', path: '/faculty/complaints' },
-    { icon: Sparkles, label: 'Event Requests', path: '/faculty/event-requests' },
-    { icon: MessageSquare, label: 'Communication', path: '/faculty/communication' },
-    { icon: Bell, label: 'Notifications', path: '/faculty/notifications' }
+  const menuStructure = [
+    {
+      type: 'item',
+      icon: LayoutDashboard,
+      label: 'Dashboard',
+      path: '/faculty/dashboard'
+    },
+    {
+      type: 'section',
+      label: 'Teaching',
+      items: [
+        { icon: BookOpen, label: 'Academic Materials', path: '/faculty/academic' },
+        { icon: FileText, label: 'Assignments', path: '/faculty/assignments' },
+        { icon: ClipboardList, label: 'Grading', path: '/faculty/grading' },
+        { icon: Calendar, label: 'Attendance', path: '/faculty/attendance' },
+      ]
+    },
+    {
+      type: 'section',
+      label: 'Students & Support',
+      items: [
+        { icon: Users, label: 'Students', path: '/faculty/students' },
+        { icon: CalendarCheck, label: 'Leave Requests', path: '/faculty/leave-requests' },
+        { icon: AlertTriangle, label: 'Complaints Center', path: '/faculty/complaints' },
+        { icon: MessageSquare, label: 'Communication', path: '/faculty/communication' },
+      ]
+    },
+    {
+      type: 'section',
+      label: 'Events & Admin',
+      items: [
+        { icon: Sparkles, label: 'Event Requests', path: '/faculty/event-requests' },
+        { icon: Bell, label: 'Notifications', path: '/faculty/notifications' },
+      ]
+    }
   ]
 
   const isActive = (path) => {
@@ -51,6 +83,40 @@ const FacultyLayout = ({ children }) => {
       return location.pathname === path
     }
     return location.pathname.startsWith(path)
+  }
+
+  const toggleSection = (sectionLabel) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionLabel.toLowerCase().replace(/\s+/g, '')]: !prev[sectionLabel.toLowerCase().replace(/\s+/g, '')]
+    }))
+  }
+
+  const renderMenuItem = (item, idx, depth = 0) => {
+    const Icon = item.icon
+    const active = isActive(item.path)
+    
+    return (
+      <motion.button
+        key={item.path || idx}
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: idx * 0.05 }}
+        whileHover={{ x: 4 }}
+        onClick={() => navigate(item.path)}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+          active 
+            ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg' 
+            : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
+        }`}
+        style={{ paddingLeft: `${16 + depth * 16}px` }}
+      >
+        <Icon className="w-5 h-5 flex-shrink-0" />
+        {!sidebarCollapsed && (
+          <span className="flex-1 text-left font-medium">{item.label}</span>
+        )}
+      </motion.button>
+    )
   }
 
   return (
@@ -99,36 +165,73 @@ const FacultyLayout = ({ children }) => {
           </div>
 
           <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-            {menuItems.map((item, idx) => {
-              const Icon = item.icon
-              const active = isActive(item.path)
-              
-              return (
-                <div key={item.path} className="relative group">
-                  <motion.button
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    whileHover={{ x: 4 }}
-                    onClick={() => navigate(item.path)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                      active 
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg' 
-                        : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    {!sidebarCollapsed && (
-                      <span className="flex-1 text-left font-medium">{item.label}</span>
+            {menuStructure.map((menuItem, idx) => {
+              if (menuItem.type === 'item') {
+                return (
+                  <div key={menuItem.path} className="relative group">
+                    {renderMenuItem(menuItem, idx)}
+                    {sidebarCollapsed && (
+                      <span className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1 rounded-lg bg-slate-900 text-white text-xs opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition">
+                        {menuItem.label}
+                      </span>
                     )}
-                  </motion.button>
-                  {sidebarCollapsed && (
-                    <span className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1 rounded-lg bg-slate-900 text-white text-xs opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition">
-                      {item.label}
-                    </span>
-                  )}
-                </div>
-              )
+                  </div>
+                )
+              }
+
+              if (menuItem.type === 'section') {
+                const sectionKey = menuItem.label.toLowerCase().replace(/\s+/g, '')
+                const isExpanded = expandedSections[sectionKey] && !sidebarCollapsed
+                
+                return (
+                  <div key={menuItem.label} className="space-y-1">
+                    {!sidebarCollapsed && (
+                      <button
+                        onClick={() => toggleSection(menuItem.label)}
+                        className="w-full flex items-center justify-between px-4 py-2 text-blue-300 hover:text-white transition-colors text-sm font-semibold uppercase tracking-wide"
+                      >
+                        <span>{menuItem.label}</span>
+                        <ChevronRight 
+                          className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                        />
+                      </button>
+                    )}
+                    {isExpanded && (
+                      <div className="space-y-1 pl-2">
+                        {menuItem.items.map((item, itemIdx) => {
+                          const Icon = item.icon
+                          const active = isActive(item.path)
+                          return (
+                            <div key={item.path} className="relative group">
+                              <motion.button
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: (idx + itemIdx) * 0.05 }}
+                                whileHover={{ x: 4 }}
+                                onClick={() => navigate(item.path)}
+                                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${
+                                  active 
+                                    ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md' 
+                                    : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
+                                }`}
+                              >
+                                <Icon className="w-4 h-4 flex-shrink-0" />
+                                <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
+                              </motion.button>
+                              {sidebarCollapsed && (
+                                <span className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1 rounded-lg bg-slate-900 text-white text-xs opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition">
+                                  {item.label}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+              return null
             })}
           </nav>
         </div>
@@ -151,4 +254,3 @@ const FacultyLayout = ({ children }) => {
 }
 
 export default FacultyLayout
-

@@ -134,7 +134,8 @@ const EventsPage = () => {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Events & Activities</h1>
+            <p className="text-sm uppercase tracking-wide text-slate-500">Academic & Campus</p>
+            <h1 className="text-3xl font-bold text-slate-900">Events & Activities</h1>
             <p className="text-slate-600">Stay updated with workshops, hackathons, fests and placement sessions</p>
           </div>
           <Button variant="secondary">

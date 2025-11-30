@@ -1,158 +1,179 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import FacultyLayout from '../../shared/layouts/FacultyLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
-import FormInput from '../../shared/components/FormInput'
-import { Calendar, CheckCircle2, XCircle, RefreshCcw, ChevronDown, ChevronUp, Users, Clock, BookOpen } from 'lucide-react'
-import { getActiveFacultyProfile } from '../utils/getActiveFaculty'
-
-// Dummy student data for each section
-const generateStudents = (sectionName, count) => {
-  const names = [
-    'Aarav N', 'Diya S', 'Arjun K', 'Priya M', 'Rohan P', 'Ananya R', 'Vikram D', 'Sneha L',
-    'Karan T', 'Meera J', 'Rahul S', 'Kavya B', 'Aditya V', 'Isha N', 'Neeraj K', 'Pooja M',
-    'Siddharth R', 'Tanvi A', 'Aman G', 'Riya C', 'Harsh S', 'Shreya P', 'Varun M', 'Nisha K',
-    'Yash D', 'Anjali T', 'Rohit B', 'Divya L', 'Akash S', 'Pallavi R', 'Sagar N', 'Kriti M',
-    'Nikhil P', 'Swati K', 'Abhishek D', 'Ritika S', 'Manish T', 'Deepika A', 'Gaurav V', 'Sakshi B'
-  ]
-  
-  return Array.from({ length: count }, (_, i) => ({
-    id: `STU-${sectionName.replace('CSE-', '')}-${String(i + 1).padStart(3, '0')}`,
-    name: names[i % names.length]
-  }))
-}
+import { CheckCircle2, XCircle, Clock, Users, BookOpen, Save, Calendar } from 'lucide-react'
+import {
+  getFacultyClassesWithSubjectsAPI,
+  getClassStudentsForFacultyAPI,
+  getClassSubjectAttendanceAPI,
+  markSubjectAttendanceAPI,
+} from '../../services/attendanceAPI'
 
 const AttendanceControl = () => {
-  const selectedFaculty = useMemo(() => getActiveFacultyProfile(), [])
-  const [expandedSections, setExpandedSections] = useState({})
-  const [attendanceData, setAttendanceData] = useState({})
-  const [notes, setNotes] = useState('')
+  const [facultyClasses, setFacultyClasses] = useState([])
+  const [selectedClassId, setSelectedClassId] = useState('')
+  const [selectedSubjectName, setSelectedSubjectName] = useState('')
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [students, setStudents] = useState([])
+  const [attendanceRecords, setAttendanceRecords] = useState({}) // { studentId: 'present' | 'absent' | 'late' }
+  const [loadingClasses, setLoadingClasses] = useState(true)
+  const [loadingStudents, setLoadingStudents] = useState(false)
+  const [loadingAttendance, setLoadingAttendance] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  // Initialize attendance data with dummy students
   useEffect(() => {
-    const initialData = {}
-    selectedFaculty.sections.forEach(section => {
-      const students = generateStudents(section.name, section.students)
-      initialData[section.name] = {
-        students: students,
-        status: 'not_started', // not_started, in_progress, submitted
-        attendance: students.reduce((acc, student) => {
-          acc[student.id] = 'present' // default to present
-          return acc
-        }, {})
-      }
-    })
-    setAttendanceData(initialData)
-  }, [selectedFaculty])
+    loadFacultyClasses()
+  }, [])
 
-  const toggleSection = (sectionName) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [sectionName]: !prev[sectionName]
-    }))
-    
-    // Mark as in_progress when expanded
-    if (!expandedSections[sectionName]) {
-      setAttendanceData(prev => ({
-        ...prev,
-        [sectionName]: {
-          ...prev[sectionName],
-          status: 'in_progress'
-        }
-      }))
+  useEffect(() => {
+    if (selectedClassId && selectedSubjectName && selectedDate) {
+      loadStudentsAndAttendance()
+    } else {
+      setStudents([])
+      setAttendanceRecords({})
+    }
+  }, [selectedClassId, selectedSubjectName, selectedDate])
+
+  const loadFacultyClasses = async () => {
+    try {
+      setLoadingClasses(true)
+      const res = await getFacultyClassesWithSubjectsAPI()
+      if (res?.status === 200) {
+        setFacultyClasses(res.data.classes || [])
+        console.log(`✅ Loaded ${res.data.count || 0} classes with subjects for faculty`)
+      } else {
+        toast.error('Failed to load classes')
+      }
+    } catch (error) {
+      console.error('Error loading faculty classes:', error)
+      toast.error(error?.response?.data?.message || 'Failed to load classes')
+    } finally {
+      setLoadingClasses(false)
     }
   }
 
-  const updateStudentAttendance = (sectionName, studentId, status) => {
-    setAttendanceData(prev => ({
-      ...prev,
-      [sectionName]: {
-        ...prev[sectionName],
-        status: 'in_progress',
-        attendance: {
-          ...prev[sectionName].attendance,
-          [studentId]: status
-        }
+  const loadStudentsAndAttendance = async () => {
+    if (!selectedClassId || !selectedSubjectName) return
+
+    try {
+      setLoadingStudents(true)
+      setLoadingAttendance(true)
+
+      // Load students for the class
+      const studentsRes = await getClassStudentsForFacultyAPI(selectedClassId)
+      if (studentsRes?.status === 200) {
+        const studentList = studentsRes.data.students || []
+        setStudents(studentList)
+
+        // Initialize all as present by default
+        const defaultAttendance = {}
+        studentList.forEach(stu => {
+          defaultAttendance[stu.id || stu._id] = 'present'
+        })
+        setAttendanceRecords(defaultAttendance)
+      } else {
+        toast.error('Failed to load students')
       }
+
+      // Load existing attendance for this class + subject + date
+      const attendanceRes = await getClassSubjectAttendanceAPI(selectedClassId, selectedSubjectName, selectedDate)
+      if (attendanceRes?.status === 200 && attendanceRes.data?.records && attendanceRes.data.records.length > 0) {
+        const existingRecords = {}
+        attendanceRes.data.records.forEach(record => {
+          const studentId = record.studentId?._id || record.studentId?.id || record.studentId
+          if (studentId) {
+            existingRecords[studentId] = record.status
+          }
+        })
+        setAttendanceRecords(existingRecords)
+        toast.success('Loaded existing attendance for this date')
+      }
+    } catch (error) {
+      console.error('Error loading students/attendance:', error)
+      toast.error(error?.response?.data?.message || 'Failed to load students or attendance')
+    } finally {
+      setLoadingStudents(false)
+      setLoadingAttendance(false)
+    }
+  }
+
+  const handleStatusChange = (studentId, status) => {
+    setAttendanceRecords(prev => ({
+      ...prev,
+      [studentId]: status
     }))
   }
 
-  const markAllPresent = (sectionName) => {
-    const students = attendanceData[sectionName]?.students || []
-    const newAttendance = students.reduce((acc, student) => {
-      acc[student.id] = 'present'
-      return acc
-    }, {})
-    
-    setAttendanceData(prev => ({
-      ...prev,
-      [sectionName]: {
-        ...prev[sectionName],
-        status: 'in_progress',
-        attendance: newAttendance
-      }
-    }))
-    toast.success(`All students in ${sectionName} marked as present`)
-  }
-
-  const getSectionStats = (sectionName) => {
-    const section = attendanceData[sectionName]
-    if (!section) return { present: 0, absent: 0, excused: 0, total: 0 }
-    
-    const stats = { present: 0, absent: 0, excused: 0, total: section.students.length }
-    Object.values(section.attendance).forEach(status => {
-      if (status === 'present') stats.present++
-      else if (status === 'absent') stats.absent++
-      else if (status === 'excused') stats.excused++
+  const markAllPresent = () => {
+    const newRecords = {}
+    students.forEach(stu => {
+      newRecords[stu.id || stu._id] = 'present'
     })
-    return stats
+    setAttendanceRecords(newRecords)
+    toast.success('All students marked as present')
   }
 
-  const submitAttendance = () => {
-    // Validate that all sections have attendance marked
-    const hasUnmarkedSections = Object.values(attendanceData).some(
-      section => section.status === 'not_started'
-    )
-    
-    if (hasUnmarkedSections) {
-      toast.error('Please mark attendance for all sections')
+  const handleSaveAttendance = async () => {
+    if (!selectedClassId || !selectedSubjectName || !selectedDate) {
+      toast.error('Please select class, subject, and date')
       return
     }
 
-    // Mark all as submitted
-    const updatedData = { ...attendanceData }
-    Object.keys(updatedData).forEach(sectionName => {
-      updatedData[sectionName] = {
-        ...updatedData[sectionName],
-        status: 'submitted'
-      }
-    })
-    setAttendanceData(updatedData)
-    
-    toast.success('Attendance synced to academic server')
-  }
-
-  // Simple history snapshot (dummy data)
-  const historySnapshot = [
-    { date: 'Today', sections: [{ name: 'CSE-2A', present: 42, total: 46 }] },
-    { date: 'Yesterday', sections: [{ name: 'CSE-2B', present: 40, total: 44 }] }
-  ]
-
-  const getStatusBadge = (status) => {
-    const badges = {
-      not_started: { text: 'Not started', color: 'bg-slate-100 text-slate-600' },
-      in_progress: { text: 'In progress', color: 'bg-amber-100 text-amber-700' },
-      submitted: { text: 'Submitted', color: 'bg-emerald-100 text-emerald-700' }
+    if (students.length === 0) {
+      toast.error('No students to mark attendance for')
+      return
     }
-    const badge = badges[status] || badges.not_started
-    return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.color}`}>
-        {badge.text}
-      </span>
-    )
+
+    try {
+      setSaving(true)
+      const records = students.map(stu => ({
+        studentId: stu.id || stu._id,
+        status: attendanceRecords[stu.id || stu._id] || 'present'
+      }))
+
+      const payload = {
+        classId: selectedClassId,
+        subjectName: selectedSubjectName,
+        date: selectedDate,
+        records
+      }
+
+      const res = await markSubjectAttendanceAPI(payload)
+      if (res?.status === 200) {
+        toast.success(`Attendance saved for ${selectedSubjectName}`)
+      } else {
+        toast.error(res?.response?.data?.message || 'Failed to save attendance')
+      }
+    } catch (error) {
+      console.error('Error saving attendance:', error)
+      toast.error(error?.response?.data?.message || 'Failed to save attendance')
+    } finally {
+      setSaving(false)
+    }
   }
+
+  const getStats = () => {
+    const total = students.length
+    let present = 0
+    let absent = 0
+    let late = 0
+
+    students.forEach(stu => {
+      const status = attendanceRecords[stu.id || stu._id] || 'present'
+      if (status === 'present') present++
+      else if (status === 'absent') absent++
+      else if (status === 'late') late++
+    })
+
+    return { total, present, absent, late }
+  }
+
+  const selectedClass = facultyClasses.find(c => (c._id || c.id) === selectedClassId)
+  const availableSubjects = selectedClass?.subjects || []
+  const stats = getStats()
 
   return (
     <FacultyLayout>
@@ -164,198 +185,228 @@ const AttendanceControl = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-wide text-slate-500">Attendance Center</p>
-            <h1 className="text-3xl font-bold text-slate-900">Mark attendance by student</h1>
-            <p className="text-slate-600">Record individual student attendance for each section</p>
+            <h1 className="text-3xl font-bold text-slate-900">Mark Attendance</h1>
+            <p className="text-slate-600">Record student attendance subject-wise for your assigned classes</p>
           </div>
-          <Button variant="secondary">
-            <Calendar className="w-4 h-4 mr-2" />
-            Download CSV
-          </Button>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2 space-y-6">
-            {/* Section Cards */}
-            <div className="space-y-4">
-              {selectedFaculty.sections.map((section) => {
-                const sectionData = attendanceData[section.name]
-                const isExpanded = expandedSections[section.name]
-                const stats = getSectionStats(section.name)
-                const sectionInfo = selectedFaculty.sections.find(s => s.name === section.name)
-
-                if (!sectionData) return null
-
-                return (
-                  <Card key={section.name} className="overflow-hidden">
-                    {/* Section Header */}
-                    <div
-                      onClick={() => toggleSection(section.name)}
-                      className="p-5 cursor-pointer hover:bg-slate-50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-bold text-slate-900">{section.name}</h3>
-                            {getStatusBadge(sectionData.status)}
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-slate-600">
-                            <span className="flex items-center gap-1">
-                              <BookOpen className="w-4 h-4" />
-                              {selectedFaculty.subject.name}
-                            </span>
-                            {sectionInfo?.schedule && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                {sectionInfo.schedule.split('·')[1]?.trim() || sectionInfo.schedule}
-                              </span>
-                            )}
-                            <span className="flex items-center gap-1">
-                              <Users className="w-4 h-4" />
-                              {stats.total} students
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <div className="flex items-center gap-2 text-sm">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              <span className="text-emerald-600 font-semibold">{stats.present}</span>
-                              <span className="text-slate-300">/</span>
-                              <XCircle className="w-4 h-4 text-rose-500" />
-                              <span className="text-rose-600 font-semibold">{stats.absent}</span>
-                              {stats.excused > 0 && (
-                                <>
-                                  <span className="text-slate-300">/</span>
-                                  <span className="text-amber-600 font-semibold">{stats.excused} excused</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          {isExpanded ? (
-                            <ChevronUp className="w-5 h-5 text-slate-400" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 text-slate-400" />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Expandable Student List */}
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="px-5 pb-5 border-t border-slate-200">
-                            <div className="flex justify-between items-center mb-4 mt-4">
-                              <h4 className="text-sm font-semibold text-slate-700">Student List</h4>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  markAllPresent(section.name)
-                                }}
-                              >
-                                Mark all present
-                              </Button>
-                            </div>
-                            <div className="space-y-2 max-h-96 overflow-y-auto">
-                              {sectionData.students.map((student) => {
-                                const attendanceStatus = sectionData.attendance[student.id] || 'present'
-                                return (
-                                  <div
-                                    key={student.id}
-                                    className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
-                                  >
-                                    <div className="flex-1">
-                                      <p className="font-semibold text-slate-900">{student.name}</p>
-                                      <p className="text-xs text-slate-500">{student.id}</p>
-                                    </div>
-                                    <select
-                                      value={attendanceStatus}
-                                      onChange={(e) => {
-                                        e.stopPropagation()
-                                        updateStudentAttendance(section.name, student.id, e.target.value)
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className={`px-4 py-2 rounded-lg border-2 text-sm font-semibold outline-none transition-colors ${
-                                        attendanceStatus === 'present'
-                                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                          : attendanceStatus === 'absent'
-                                          ? 'border-rose-200 bg-rose-50 text-rose-700'
-                                          : 'border-amber-200 bg-amber-50 text-amber-700'
-                                      }`}
-                                    >
-                                      <option value="present">Present</option>
-                                      <option value="absent">Absent</option>
-                                      <option value="excused">Excused</option>
-                                    </select>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </Card>
-                )
-              })}
-            </div>
-
-            {/* Notes Field */}
-            <Card>
-              <FormInput
-                label="Notes (optional)"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Late lab, medical leave, etc."
-              />
-            </Card>
-
-            {/* Submit Button */}
-            <div className="flex justify-end">
-              <Button variant="primary" size="lg" onClick={submitAttendance}>
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Submit Attendance
-              </Button>
-            </div>
-          </div>
-
-          {/* History Snapshot */}
-          <div>
-            <Card>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-slate-900">History Snapshot</h2>
-                <RefreshCcw className="w-4 h-4 text-slate-400" />
-              </div>
-              <div className="space-y-3">
-                {historySnapshot.map((snapshot, idx) => (
-                  <div key={idx} className="rounded-xl border border-slate-200 p-4">
-                    <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">{snapshot.date}</p>
-                    <div className="space-y-2">
-                      {snapshot.sections.map((section, sIdx) => (
-                        <div key={sIdx} className="flex items-center justify-between text-sm text-slate-600">
-                          <span>{section.name}</span>
-                          <span className="font-semibold">{section.present}/{section.total}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+        {/* Selection Card */}
+        <Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Select Class <span className="text-red-600">*</span>
+              </label>
+              <select
+                value={selectedClassId}
+                onChange={e => {
+                  setSelectedClassId(e.target.value)
+                  setSelectedSubjectName('') // Reset subject when class changes
+                  setStudents([])
+                  setAttendanceRecords({})
+                }}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                disabled={loadingClasses}
+              >
+                <option value="">Choose a class</option>
+                {facultyClasses.map(cls => (
+                  <option key={cls._id || cls.id} value={cls._id || cls.id}>
+                    {cls.className || cls.name} - {cls.department}
+                  </option>
                 ))}
+              </select>
+              {facultyClasses.length === 0 && !loadingClasses && (
+                <p className="text-xs text-red-600 mt-1">No classes assigned. Contact admin.</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Select Subject <span className="text-red-600">*</span>
+              </label>
+              <select
+                value={selectedSubjectName}
+                onChange={e => {
+                  setSelectedSubjectName(e.target.value)
+                  setStudents([])
+                  setAttendanceRecords({})
+                }}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                disabled={!selectedClassId || availableSubjects.length === 0}
+              >
+                <option value="">Choose a subject</option>
+                {availableSubjects.map((sub, idx) => (
+                  <option key={idx} value={sub.name}>
+                    {sub.name}
+                  </option>
+                ))}
+              </select>
+              {selectedClassId && availableSubjects.length === 0 && (
+                <p className="text-xs text-slate-500 mt-1">No subjects available for this class</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Date <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={e => setSelectedDate(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                max={new Date().toISOString().split('T')[0]} // Prevent future dates
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* Stats Cards */}
+        {selectedClassId && selectedSubjectName && students.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Total Students</p>
+                  <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+                </div>
+              </div>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Present</p>
+                  <p className="text-2xl font-bold text-emerald-600">{stats.present}</p>
+                </div>
+              </div>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center">
+                  <XCircle className="w-6 h-6 text-rose-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Absent</p>
+                  <p className="text-2xl font-bold text-rose-600">{stats.absent}</p>
+                </div>
+              </div>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Late</p>
+                  <p className="text-2xl font-bold text-amber-600">{stats.late}</p>
+                </div>
               </div>
             </Card>
           </div>
-        </div>
+        )}
+
+        {/* Students Table */}
+        {selectedClassId && selectedSubjectName && (
+          <Card>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  {selectedClass?.className || selectedClass?.name} - {selectedSubjectName}
+                </h2>
+                <p className="text-sm text-slate-500">{selectedClass?.department}</p>
+              </div>
+              {students.length > 0 && (
+                <Button variant="secondary" size="sm" onClick={markAllPresent}>
+                  Mark All Present
+                </Button>
+              )}
+            </div>
+
+            {loadingStudents || loadingAttendance ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-slate-500">Loading students and attendance...</p>
+              </div>
+            ) : students.length === 0 ? (
+              <div className="py-8 text-center">
+                <Users className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">No students in this class</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-3 px-4 font-semibold text-slate-600">Roll / ID</th>
+                        <th className="text-left py-3 px-4 font-semibold text-slate-600">Name</th>
+                        <th className="text-left py-3 px-4 font-semibold text-slate-600">Email</th>
+                        <th className="text-left py-3 px-4 font-semibold text-slate-600">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map((stu, idx) => {
+                        const studentId = stu.id || stu._id
+                        const status = attendanceRecords[studentId] || 'present'
+                        return (
+                          <tr key={studentId} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4">{stu.studentID || `#${idx + 1}`}</td>
+                            <td className="py-3 px-4 font-medium text-slate-900">{stu.name}</td>
+                            <td className="py-3 px-4 text-slate-600">{stu.email}</td>
+                            <td className="py-3 px-4">
+                              <select
+                                value={status}
+                                onChange={e => handleStatusChange(studentId, e.target.value)}
+                                className={`px-3 py-1.5 rounded-lg border-2 text-sm font-semibold outline-none transition-colors ${
+                                  status === 'present'
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                    : status === 'absent'
+                                    ? 'border-rose-200 bg-rose-50 text-rose-700'
+                                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                                }`}
+                              >
+                                <option value="present">Present</option>
+                                <option value="absent">Absent</option>
+                                <option value="late">Late</option>
+                              </select>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-6 flex justify-end">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    onClick={handleSaveAttendance}
+                    loading={saving}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Attendance
+                  </Button>
+                </div>
+              </>
+            )}
+          </Card>
+        )}
+
+        {(!selectedClassId || !selectedSubjectName) && (
+          <Card>
+            <div className="text-center py-12">
+              <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500">Please select a class and subject to mark attendance</p>
+            </div>
+          </Card>
+        )}
       </motion.div>
     </FacultyLayout>
   )
 }
 
 export default AttendanceControl
-

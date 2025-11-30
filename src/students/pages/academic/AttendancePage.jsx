@@ -1,27 +1,55 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import toast from 'react-hot-toast'
 import MainLayout from '../../../shared/layouts/MainLayout'
 import Card from '../../../shared/components/Card'
-import Button from '../../../shared/components/Button'
-import { Calendar, AlertTriangle, CheckCircle2, TrendingUp, Download } from 'lucide-react'
-import { attendanceData, overallAttendance } from '../../data/academicData'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Calendar, CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react'
+import { getStudentAttendanceSummaryAPI } from '../../../services/attendanceAPI'
 
 const AttendancePage = () => {
-  const lowSubjects = attendanceData.filter(item => item.percentage < 75)
-  const totalClasses = attendanceData.reduce((acc, cur) => acc + cur.totalClasses, 0)
+  const [attendanceData, setAttendanceData] = useState({
+    summary: [], // Array of subject-wise attendance
+    overall: {
+      totalClasses: 0,
+      presentCount: 0,
+      absentCount: 0,
+      lateCount: 0,
+      percentage: 0,
+    },
+  })
+  const [loading, setLoading] = useState(true)
 
-  const chartData = attendanceData.map(item => ({
-    subject: item.subject.substring(0, 8),
-    percentage: item.percentage
-  }))
+  useEffect(() => {
+    loadAttendanceSummary()
+  }, [])
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'good': return { bg: 'bg-emerald-500', text: 'text-emerald-600', badge: 'bg-emerald-50 text-emerald-700' }
-      case 'average': return { bg: 'bg-amber-500', text: 'text-amber-600', badge: 'bg-amber-50 text-amber-700' }
-      default: return { bg: 'bg-red-500', text: 'text-red-600', badge: 'bg-red-50 text-red-700' }
+  const loadAttendanceSummary = async () => {
+    try {
+      setLoading(true)
+      const res = await getStudentAttendanceSummaryAPI()
+      if (res?.status === 200) {
+        setAttendanceData(res.data)
+      } else {
+        toast.error('Failed to load attendance summary')
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Unable to load attendance summary')
+    } finally {
+      setLoading(false)
     }
   }
+
+  const getStatusColor = (percentage) => {
+    if (percentage >= 75) {
+      return { bg: 'bg-emerald-50', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700', status: 'Good' }
+    } else if (percentage >= 60) {
+      return { bg: 'bg-amber-50', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', status: 'Average' }
+    } else {
+      return { bg: 'bg-red-50', text: 'text-red-700', badge: 'bg-red-100 text-red-700', status: 'Low' }
+    }
+  }
+
+  const overallStatus = getStatusColor(attendanceData.overall.percentage)
 
   return (
     <MainLayout>
@@ -33,141 +61,169 @@ const AttendancePage = () => {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Attendance Insights</h1>
-            <p className="text-slate-600">Monitor subject-wise attendance, alerts and overall trends</p>
+            <p className="text-sm uppercase tracking-wide text-slate-500">Academic & Campus</p>
+            <h1 className="text-3xl font-bold text-slate-900">Attendance Insights</h1>
+            <p className="text-slate-600">Monitor your subject-wise attendance and overall trends</p>
           </div>
-         
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Overall Attendance</p>
-                  <p className="text-4xl font-bold text-blue-600 mb-1">{overallAttendance}%</p>
-                  <p className="text-sm text-slate-500">Goal: 85% minimum</p>
-                </div>
-                <div className="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-8 h-8 text-blue-600" />
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Low Attendance</p>
-                  <p className="text-4xl font-bold text-amber-600 mb-1">{lowSubjects.length}</p>
-                  <p className="text-sm text-slate-500">Needs attention</p>
-                </div>
-                <div className="w-16 h-16 bg-amber-50 rounded-xl flex items-center justify-center">
-                  <AlertTriangle className="w-8 h-8 text-amber-600" />
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Classes Tracked</p>
-                  <p className="text-4xl font-bold text-slate-900 mb-1">{totalClasses}</p>
-                  <p className="text-sm text-slate-500">Current semester</p>
-                </div>
-                <div className="w-16 h-16 bg-slate-50 rounded-xl flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-slate-600" />
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        </div>
-
-        {/* Chart */}
-        <Card>
-          <h2 className="text-xl font-bold text-slate-900 mb-6">Attendance Overview</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="subject" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  padding: '12px'
-                }}
-              />
-              <Bar dataKey="percentage" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-
-        {/* Subject Details */}
-        <div className="grid grid-cols-1 gap-6">
-          {attendanceData.map((item, idx) => {
-            const colors = getStatusColor(item.status)
-            return (
+        {loading ? (
+          <Card className="py-10 text-center text-slate-500">
+            Loading attendance summary...
+          </Card>
+        ) : (
+          <>
+            {/* Overall Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <motion.div
-                key={item.subject}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + idx * 0.1 }}
+                transition={{ delay: 0.1 }}
               >
                 <Card>
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 ${colors.badge} rounded-xl flex items-center justify-center`}>
-                        <Calendar className={`w-6 h-6 ${colors.text}`} />
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Subject</p>
-                        <h3 className="text-xl font-bold text-slate-900">{item.subject}</h3>
-                        <p className="text-sm text-slate-500 mt-1">
-                          {item.attended} of {item.totalClasses} classes attended
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-center md:text-right">
-                      <p className="text-xs text-slate-500 mb-1">Percentage</p>
-                      <p className={`text-4xl font-bold ${colors.text}`}>
-                        {item.percentage}%
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Overall Attendance</p>
+                      <p className={`text-4xl font-bold ${overallStatus.text} mb-1`}>
+                        {attendanceData.overall.percentage}%
                       </p>
-                      <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold uppercase ${colors.badge}`}>
-                        {item.status}
-                      </span>
+                      <p className="text-sm text-slate-500">Goal: 75% minimum</p>
                     </div>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${item.percentage}%` }}
-                      transition={{ duration: 1, delay: 0.5 + idx * 0.1 }}
-                      className={`h-full rounded-full ${colors.bg}`}
-                    />
+                    <div className={`w-16 h-16 ${overallStatus.bg} rounded-xl flex items-center justify-center`}>
+                      <Calendar className={`w-8 h-8 ${overallStatus.text}`} />
+                    </div>
                   </div>
                 </Card>
               </motion.div>
-            )
-          })}
-        </div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Total Classes</p>
+                      <p className="text-4xl font-bold text-slate-900 mb-1">
+                        {attendanceData.overall.totalClasses}
+                      </p>
+                      <p className="text-sm text-slate-500">All subjects</p>
+                    </div>
+                    <div className="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center">
+                      <CheckCircle2 className="w-8 h-8 text-blue-600" />
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Present</p>
+                      <p className="text-4xl font-bold text-emerald-600 mb-1">
+                        {attendanceData.overall.presentCount}
+                      </p>
+                      <p className="text-sm text-slate-500">Classes attended</p>
+                    </div>
+                    <div className="w-16 h-16 bg-emerald-50 rounded-xl flex items-center justify-center">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Absent</p>
+                      <p className="text-4xl font-bold text-red-600 mb-1">
+                        {attendanceData.overall.absentCount}
+                      </p>
+                      <p className="text-sm text-slate-500">Missed classes</p>
+                    </div>
+                    <div className="w-16 h-16 bg-red-50 rounded-xl flex items-center justify-center">
+                      <XCircle className="w-8 h-8 text-red-600" />
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            </div>
+
+            {/* Subject-wise Table */}
+            <Card>
+              <h2 className="text-xl font-bold text-slate-900 mb-6">Subject-wise Attendance</h2>
+              {attendanceData.summary.length === 0 ? (
+                <div className="py-10 text-center text-slate-500">
+                  <AlertTriangle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <p>No attendance records found yet.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-3 px-4 font-semibold text-slate-600">Subject</th>
+                        <th className="text-center py-3 px-4 font-semibold text-slate-600">Total Classes</th>
+                        <th className="text-center py-3 px-4 font-semibold text-slate-600">Present</th>
+                        <th className="text-center py-3 px-4 font-semibold text-slate-600">Absent</th>
+                        <th className="text-center py-3 px-4 font-semibold text-slate-600">Late</th>
+                        <th className="text-center py-3 px-4 font-semibold text-slate-600">Percentage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {attendanceData.summary.map((subject, idx) => {
+                        const subjectStatus = getStatusColor(subject.percentage)
+                        return (
+                          <tr
+                            key={idx}
+                            className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                          >
+                            <td className="py-4 px-4 font-semibold text-slate-900">{subject.subjectName}</td>
+                            <td className="py-4 px-4 text-center text-slate-700">{subject.totalClasses}</td>
+                            <td className="py-4 px-4 text-center">
+                              <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
+                                <CheckCircle2 className="w-4 h-4" />
+                                {subject.presentCount}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <span className="inline-flex items-center gap-1 text-red-600 font-semibold">
+                                <XCircle className="w-4 h-4" />
+                                {subject.absentCount}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <span className="inline-flex items-center gap-1 text-amber-600 font-semibold">
+                                <Clock className="w-4 h-4" />
+                                {subject.lateCount}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${subjectStatus.badge}`}>
+                                {subject.percentage}%
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </>
+        )}
       </motion.div>
     </MainLayout>
   )

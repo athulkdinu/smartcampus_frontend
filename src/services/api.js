@@ -18,6 +18,10 @@ export const getAllUsersAPI = () => {
   return api.get("/api/admin/users");
 };
 
+export const getAllFacultyAPI = () => {
+  return api.get("/api/admin/faculty-list");
+};
+
 export const createEventAPI = (data) => {
   return api.post("/api/events", data);
 };
@@ -59,9 +63,10 @@ export const createClassAPI = (data) => {
   return api.post("/api/admin/classes", data);
 };
 
-export const getFacultyClassesAPI = () => {
-  return api.get("/api/admin/classes/faculty/my-classes");
-};
+// DEPRECATED: Use getFacultyClassesAPI from attendanceAPI.js instead
+// export const getFacultyClassesAPI = () => {
+//   return api.get("/api/admin/classes/faculty/my-classes");
+// };
 
 export const updateStudentClassAPI = (data) => {
   return api.put("/api/student/update-class", data);
@@ -77,6 +82,27 @@ export const assignClassTeacherAPI = (data) => {
 
 export const assignSubjectTeacherAPI = (data) => {
   return api.put("/api/admin/classes/assign-subject", data);
+};
+
+// leave request APIs
+export const createLeaveRequestAPI = (formData) => {
+  return api.post("/api/leaves", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
+
+export const getStudentLeaveRequestsAPI = () => {
+  return api.get("/api/leaves/student");
+};
+
+export const getFacultyLeaveRequestsAPI = () => {
+  return api.get("/api/leaves/faculty");
+};
+
+export const updateLeaveStatusAPI = (id, status, remarks = null) => {
+  return api.patch(`/api/leaves/${id}/status`, { status, remarks });
 };
 
 export default api;

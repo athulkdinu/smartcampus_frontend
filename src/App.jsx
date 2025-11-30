@@ -41,6 +41,7 @@ import FacultyNotifications from './faculty/pages/FacultyNotifications'
 import FacultyLeaveRequests from './faculty/pages/FacultyLeaveRequests'
 import FacultyComplaints from './faculty/pages/FacultyComplaints'
 import FacultyEventRequests from './faculty/pages/FacultyEventRequests'
+import FacultyAssignments from './faculty/pages/FacultyAssignments'
 import './App.css'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 
@@ -140,6 +141,7 @@ function App() {
         <Route path="/faculty" element={<Navigate to="/faculty/dashboard" replace />} />
         <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
         <Route path="/faculty/academic" element={<AcademicManagement />} />
+        <Route path="/faculty/assignments" element={<FacultyAssignments />} />
         <Route path="/faculty/students" element={<FacultyStudents />} />
         <Route path="/faculty/grading" element={<GradingWorkspace />} />
         <Route path="/faculty/attendance" element={<AttendanceControl />} />

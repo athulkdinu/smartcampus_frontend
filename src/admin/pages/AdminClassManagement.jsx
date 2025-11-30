@@ -1,182 +1,253 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import AdminLayout from '../../shared/layouts/AdminLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
-import { Users, BookOpen, PlusCircle } from 'lucide-react'
-import { createClassAPI, getAllClassesAdminAPI, getAllUsersAPI, getClassDetailsAdminAPI, assignClassTeacherAPI, assignSubjectTeacherAPI } from '../../services/api'
+import { 
+  BookOpen, 
+  PlusCircle, 
+  Users, 
+  UserCheck, 
+  GraduationCap,
+  RefreshCw
+} from 'lucide-react'
+import {
+  createClassAPI,
+  getAllClassesAPI,
+  getFacultyListAPI,
+  assignTeacherAPI,
+  assignFacultyAPI,
+  assignStudentAPI,
+  getClassStudentsAPI,
+  getClassDetailsAPI,
+  getAllUsersAPI,
+} from '../../services/classAPI'
+import Modal from '../../shared/components/Modal'
 
 const AdminClassManagement = () => {
+  const [activeTab, setActiveTab] = useState('create')
   const [classes, setClasses] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({
+  const [faculty, setFaculty] = useState([])
+  const [students, setStudents] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [loadingFaculty, setLoadingFaculty] = useState(false)
+  const [loadingStudents, setLoadingStudents] = useState(false)
+
+  // Create Class Form
+  const [classForm, setClassForm] = useState({
     className: '',
     department: ''
   })
-  const [faculty, setFaculty] = useState([])
-  const [selectedClass, setSelectedClass] = useState(null)
-  const [showAssignTeacher, setShowAssignTeacher] = useState(false)
-  const [showAssignSubject, setShowAssignSubject] = useState(false)
-  const [showStudents, setShowStudents] = useState(false)
-  const [subjectForm, setSubjectForm] = useState({ subjectName: '', teacherId: '' })
+
+  // Assign Teacher Form
+  const [selectedClassForTeacher, setSelectedClassForTeacher] = useState('')
   const [selectedTeacherId, setSelectedTeacherId] = useState('')
-  const [classDetails, setClassDetails] = useState(null)
+
+  // Assign Faculty Form
+  const [selectedClassForFaculty, setSelectedClassForFaculty] = useState('')
+  const [subjectForm, setSubjectForm] = useState({
+    subjectName: '',
+    teacherId: ''
+  })
+
+  // Manage Students Form
+  const [selectedClassForStudents, setSelectedClassForStudents] = useState('')
+  const [selectedStudentId, setSelectedStudentId] = useState('')
+  const [classStudents, setClassStudents] = useState([])
+  const [selectedClassDetails, setSelectedClassDetails] = useState(null)
+  const [showClassDetailsModal, setShowClassDetailsModal] = useState(false)
+  const [loadingDetails, setLoadingDetails] = useState(false)
+
+  useEffect(() => {
+    loadClasses()
+    loadFaculty()
+    loadStudents()
+  }, [])
 
   const loadClasses = async () => {
     try {
       setLoading(true)
-      const res = await getAllClassesAdminAPI()
+      const res = await getAllClassesAPI()
       if (res?.status === 200) {
         setClasses(res.data.classes || [])
+        console.log(`✅ Loaded ${res.data.count || 0} classes`)
       } else {
         toast.error('Failed to load classes')
       }
     } catch (error) {
-      const message = error?.response?.data?.message || 'Unable to load classes'
-      toast.error(message)
+      console.error('Error loading classes:', error)
+      toast.error('Failed to load classes')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    loadClasses()
-  }, [])
-
   const loadFaculty = async () => {
     try {
-      const res = await getAllUsersAPI()
-      if (res?.status === 200 && res.data?.users && Array.isArray(res.data.users)) {
-        const facultyList = res.data.users.filter(u => u.role === 'faculty')
-        setFaculty(facultyList)
+      setLoadingFaculty(true)
+      const res = await getFacultyListAPI()
+      if (res?.status === 200 && Array.isArray(res.data)) {
+        setFaculty(res.data)
+        console.log(`✅ Loaded ${res.data.length} faculty`)
+      } else {
+        toast.error('Failed to load faculty')
       }
     } catch (error) {
-      console.error('Failed to load faculty:', error)
-      toast.error('Failed to load faculty list')
+      console.error('Error loading faculty:', error)
+      toast.error('Failed to load faculty')
+    } finally {
+      setLoadingFaculty(false)
     }
   }
 
-  const handleChange = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }))
+  const loadStudents = async () => {
+    try {
+      setLoadingStudents(true)
+      const res = await getAllUsersAPI()
+      if (res?.status === 200 && res.data?.users) {
+        const studentList = res.data.users.filter(u => u.role === 'student')
+        setStudents(studentList)
+        console.log(`✅ Loaded ${studentList.length} students`)
+      }
+    } catch (error) {
+      console.error('Error loading students:', error)
+    } finally {
+      setLoadingStudents(false)
+    }
+  }
+
+  const loadClassStudents = async (classId) => {
+    try {
+      const res = await getClassStudentsAPI(classId)
+      if (res?.status === 200) {
+        setClassStudents(res.data.students || [])
+      }
+    } catch (error) {
+      console.error('Error loading class students:', error)
+      toast.error('Failed to load class students')
+    }
   }
 
   const handleCreateClass = async (e) => {
     e.preventDefault()
-    if (!form.className.trim() || !form.department.trim()) {
+    if (!classForm.className.trim() || !classForm.department.trim()) {
       toast.error('Class name and department are required')
       return
     }
 
     try {
-      setSaving(true)
-      const payload = {
-        className: form.className.trim(),
-        department: form.department.trim()
-      }
-      const res = await createClassAPI(payload)
+      const res = await createClassAPI(classForm)
       if (res?.status === 201) {
-        toast.success('Class created')
-        setForm({ className: '', department: '' })
+        toast.success('Class created successfully')
+        setClassForm({ className: '', department: '' })
         await loadClasses()
       } else {
-        const message = res?.response?.data?.message || 'Failed to create class'
-        toast.error(message)
+        toast.error(res?.response?.data?.message || 'Failed to create class')
       }
     } catch (error) {
-      const message = error?.response?.data?.message || 'Something went wrong'
-      toast.error(message)
-    } finally {
-      setSaving(false)
+      toast.error(error?.response?.data?.message || 'Failed to create class')
     }
   }
 
-  const openAssignTeacher = async (cls) => {
-    setSelectedClass(cls)
-    setSelectedTeacherId('')
-    setShowAssignTeacher(true)
-    if (faculty.length === 0) {
-      await loadFaculty()
+  const handleAssignTeacher = async (e) => {
+    e.preventDefault()
+    if (!selectedClassForTeacher || !selectedTeacherId) {
+      toast.error('Please select class and teacher')
+      return
     }
-  }
 
-  const openAssignSubject = async (cls) => {
-    setSelectedClass(cls)
-    setSubjectForm({ subjectName: '', teacherId: '' })
-    setShowAssignSubject(true)
-    if (faculty.length === 0) {
-      await loadFaculty()
-    }
-  }
-
-  const openViewStudents = async (cls) => {
     try {
-      setSelectedClass(cls)
-      const res = await getClassDetailsAdminAPI(cls._id)
-      if (res?.status === 200 && res.data?.class) {
-        setClassDetails(res.data.class)
-        setShowStudents(true)
+      const res = await assignTeacherAPI(selectedClassForTeacher, selectedTeacherId)
+      if (res?.status === 200) {
+        toast.success('Class teacher assigned successfully')
+        setSelectedClassForTeacher('')
+        setSelectedTeacherId('')
+        await loadClasses()
+        await loadFaculty() // Refresh faculty list
+      } else {
+        toast.error(res?.response?.data?.message || 'Failed to assign teacher')
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to assign teacher')
+    }
+  }
+
+  const handleAssignFaculty = async (e) => {
+    e.preventDefault()
+    if (!selectedClassForFaculty || !subjectForm.subjectName.trim() || !subjectForm.teacherId) {
+      toast.error('Please fill all fields')
+      return
+    }
+
+    try {
+      const res = await assignFacultyAPI(
+        selectedClassForFaculty,
+        subjectForm.subjectName.trim(),
+        subjectForm.teacherId
+      )
+      if (res?.status === 200) {
+        toast.success('Faculty assigned to subject successfully')
+        setSubjectForm({ subjectName: '', teacherId: '' })
+        await loadClasses()
+        await loadFaculty() // Refresh faculty list
+      } else {
+        toast.error(res?.response?.data?.message || 'Failed to assign faculty')
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to assign faculty')
+    }
+  }
+
+  const handleViewClassDetails = async (classId) => {
+    try {
+      setLoadingDetails(true)
+      setShowClassDetailsModal(true)
+      const res = await getClassDetailsAPI(classId)
+      if (res?.status === 200) {
+        setSelectedClassDetails(res.data.class)
       } else {
         toast.error('Failed to load class details')
+        setShowClassDetailsModal(false)
       }
     } catch (error) {
-      const message = error?.response?.data?.message || 'Unable to load class details'
-      toast.error(message)
+      console.error('Error loading class details:', error)
+      toast.error('Failed to load class details')
+      setShowClassDetailsModal(false)
+    } finally {
+      setLoadingDetails(false)
     }
   }
 
-  const handleSaveClassTeacher = async (e) => {
+  const handleAssignStudent = async (e) => {
     e.preventDefault()
-    if (!selectedClass || !selectedTeacherId) {
-      toast.error('Please select a class teacher')
+    if (!selectedClassForStudents || !selectedStudentId) {
+      toast.error('Please select class and student')
       return
     }
+
     try {
-      const res = await assignClassTeacherAPI({
-        classId: selectedClass._id,
-        teacherId: selectedTeacherId
-      })
+      const res = await assignStudentAPI(selectedClassForStudents, selectedStudentId)
       if (res?.status === 200) {
-        toast.success('Class teacher assigned')
-        setShowAssignTeacher(false)
-        await loadClasses() // Refresh classes list
+        toast.success('Student assigned to class successfully')
+        setSelectedStudentId('')
+        await loadClassStudents(selectedClassForStudents)
+        await loadClasses()
+        await loadStudents() // Refresh student list
       } else {
-        const message = res?.response?.data?.message || 'Failed to assign class teacher'
-        toast.error(message)
+        toast.error(res?.response?.data?.message || 'Failed to assign student')
       }
     } catch (error) {
-      const message = error?.response?.data?.message || 'Something went wrong'
-      toast.error(message)
+      toast.error(error?.response?.data?.message || 'Failed to assign student')
     }
   }
 
-  const handleSaveSubject = async (e) => {
-    e.preventDefault()
-    if (!selectedClass || !subjectForm.subjectName.trim() || !subjectForm.teacherId) {
-      toast.error('Subject name and teacher are required')
-      return
-    }
-    try {
-      const res = await assignSubjectTeacherAPI({
-        classId: selectedClass._id,
-        subjectName: subjectForm.subjectName.trim(),
-        teacherId: subjectForm.teacherId
-      })
-      if (res?.status === 200) {
-        toast.success('Subject teacher assigned')
-        setShowAssignSubject(false)
-        setSubjectForm({ subjectName: '', teacherId: '' }) // Reset form
-        await loadClasses() // Refresh classes list
-      } else {
-        const message = res?.response?.data?.message || 'Failed to assign subject teacher'
-        toast.error(message)
-      }
-    } catch (error) {
-      const message = error?.response?.data?.message || 'Something went wrong'
-      toast.error(message)
-    }
-  }
+  const tabs = [
+    { id: 'create', label: 'Create Class', icon: PlusCircle },
+    { id: 'teacher', label: 'Assign Class Teacher', icon: UserCheck },
+    { id: 'faculty', label: 'Assign Faculties', icon: Users },
+    { id: 'students', label: 'Manage Students', icon: GraduationCap },
+  ]
 
   return (
     <AdminLayout>
@@ -190,241 +261,465 @@ const AdminClassManagement = () => {
             <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Academic Structure</p>
             <h1 className="text-3xl font-bold text-slate-900">Class Management</h1>
             <p className="text-slate-600 text-sm">
-              Create classes, map faculty, and manage student groupings.
+              Create classes, assign teachers, and manage student enrollments.
             </p>
           </div>
+          <Button variant="secondary" size="sm" onClick={() => {
+            loadClasses()
+            loadFaculty()
+            loadStudents()
+            toast.success('Data refreshed')
+          }}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Create Class Form */}
-          <Card className="lg:col-span-1">
-            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <PlusCircle className="w-5 h-5 text-blue-600" />
-              Create New Class
-            </h2>
-            <form className="space-y-4" onSubmit={handleCreateClass}>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Class Name
-                </label>
-                <input
-                  type="text"
-                  value={form.className}
-                  onChange={e => handleChange('className', e.target.value)}
-                  placeholder="e.g., CSE-2A"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Department
-                </label>
-                <input
-                  type="text"
-                  value={form.department}
-                  onChange={e => handleChange('department', e.target.value)}
-                  placeholder="e.g., Computer Science"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                />
-              </div>
-              <Button type="submit" variant="primary" className="w-full" loading={saving}>
-                Create Class
-              </Button>
-            </form>
-          </Card>
+        {/* Tabs */}
+        <Card>
+          <div className="flex flex-wrap gap-2 border-b border-slate-200">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${
+                    isActive
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        </Card>
 
-          {/* Class List */}
-          <Card className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-slate-700" />
-                Classes
+        {/* Tab Content */}
+        <div>
+          {/* Create Class Tab */}
+          {activeTab === 'create' && (
+            <Card>
+              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <PlusCircle className="w-5 h-5 text-blue-600" />
+                Create New Class
               </h2>
-              <span className="text-xs text-slate-500">
-                {classes.length} classes configured
-              </span>
-            </div>
-            {loading ? (
-              <p className="text-sm text-slate-500">Loading classes...</p>
-            ) : classes.length === 0 ? (
-              <div className="text-center py-10 text-slate-500">
-                <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                <p>No classes created yet.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-200">
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600">Class</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600">Department</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {classes.map((cls, idx) => (
-                      <motion.tr
-                        key={cls._id}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.03 }}
-                        className="border-b border-slate-100 hover:bg-slate-50"
-                      >
-                        <td className="py-3 px-4 text-sm font-medium text-slate-900">
-                          {cls.className}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-slate-600">
-                          {cls.department}
-                        </td>
-                        <td className="py-3 px-4 text-xs">
-                          <div className="flex flex-wrap gap-2">
-                            <Button variant="secondary" size="xs" onClick={() => openAssignTeacher(cls)}>
-                              Assign Class Teacher
-                            </Button>
-                            <Button variant="ghost" size="xs" onClick={() => openAssignSubject(cls)}>
-                              Subjects & Faculty
-                            </Button>
-                            <Button variant="ghost" size="xs" onClick={() => openViewStudents(cls)}>
-                              View Students
-                            </Button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-
-          {/* Assign Class Teacher Modal (simple inline panel) */}
-          {showAssignTeacher && selectedClass && (
-            <Card className="lg:col-span-3 border border-slate-200 bg-slate-50/70">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Assign Class Teacher · {selectedClass.className}
-                </h3>
-                <Button variant="ghost" size="xs" onClick={() => setShowAssignTeacher(false)}>
-                  Close
-                </Button>
-              </div>
-              <form className="flex flex-col sm:flex-row gap-3 items-center" onSubmit={handleSaveClassTeacher}>
-                <select
-                  value={selectedTeacherId}
-                  onChange={e => setSelectedTeacherId(e.target.value)}
-                  className="w-full sm:w-64 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                >
-                  <option value="">Select faculty</option>
-                  {faculty.map(f => (
-                    <option key={f.id} value={f.id}>
-                      {f.name} ({f.email})
-                    </option>
-                  ))}
-                </select>
-                <Button type="submit" variant="primary" size="sm">
-                  Save
-                </Button>
-              </form>
-            </Card>
-          )}
-
-          {/* Assign Subject & Faculty Inline Panel */}
-          {showAssignSubject && selectedClass && (
-            <Card className="lg:col-span-3 border border-slate-200 bg-slate-50/70">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Assign Subject & Faculty · {selectedClass.className}
-                </h3>
-                <Button variant="ghost" size="xs" onClick={() => setShowAssignSubject(false)}>
-                  Close
-                </Button>
-              </div>
-              <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={handleSaveSubject}>
-                <input
-                  type="text"
-                  value={subjectForm.subjectName}
-                  onChange={e => setSubjectForm(prev => ({ ...prev, subjectName: e.target.value }))}
-                  placeholder="Subject name"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                />
-                <select
-                  value={subjectForm.teacherId}
-                  onChange={e => setSubjectForm(prev => ({ ...prev, teacherId: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                >
-                  <option value="">Select faculty</option>
-                  {faculty.map(f => (
-                    <option key={f.id} value={f.id}>
-                      {f.name} ({f.email})
-                    </option>
-                  ))}
-                </select>
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setShowAssignSubject(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" variant="primary" size="sm">
-                    Save
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          )}
-
-          {/* View Students Inline Panel */}
-          {showStudents && selectedClass && classDetails && (
-            <Card className="lg:col-span-3 border border-slate-200 bg-slate-50/70">
-              <div className="flex items-center justify-between mb-4">
+              <form onSubmit={handleCreateClass} className="space-y-4 max-w-md">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Students in {classDetails.className}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Department: {classDetails.department}
-                  </p>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Class Name <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={classForm.className}
+                    onChange={e => setClassForm(prev => ({ ...prev, className: e.target.value }))}
+                    placeholder="e.g., CSE-2A"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    required
+                  />
                 </div>
-                <Button variant="ghost" size="xs" onClick={() => setShowStudents(false)}>
-                  Close
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Department <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={classForm.department}
+                    onChange={e => setClassForm(prev => ({ ...prev, department: e.target.value }))}
+                    placeholder="e.g., Computer Science"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    required
+                  />
+                </div>
+                <Button type="submit" variant="primary" loading={loading}>
+                  Create Class
                 </Button>
-              </div>
-              {classDetails.students && classDetails.students.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">
-                          Name
-                        </th>
-                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">
-                          Student ID
-                        </th>
-                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">
-                          Email
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {classDetails.students.map(stu => (
-                        <tr key={stu._id} className="border-b border-slate-100">
-                          <td className="py-2 px-3">{stu.name}</td>
-                          <td className="py-2 px-3">{stu.studentID || '-'}</td>
-                          <td className="py-2 px-3">{stu.email}</td>
+              </form>
+
+              {/* Classes List */}
+              <div className="mt-8">
+                <h3 className="text-md font-semibold text-slate-900 mb-4">All Classes ({classes.length})</h3>
+                {loading ? (
+                  <p className="text-sm text-slate-500">Loading classes...</p>
+                ) : classes.length === 0 ? (
+                  <p className="text-sm text-slate-500">No classes created yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left py-2 px-3 font-semibold text-slate-600">Class</th>
+                          <th className="text-left py-2 px-3 font-semibold text-slate-600">Department</th>
+                          <th className="text-left py-2 px-3 font-semibold text-slate-600">Class Teacher</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {classes.map((cls) => (
+                          <tr 
+                            key={cls._id} 
+                            className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
+                            onClick={() => handleViewClassDetails(cls._id)}
+                          >
+                            <td className="py-2 px-3 font-medium text-blue-600 hover:text-blue-700">
+                              {cls.className}
+                            </td>
+                            <td className="py-2 px-3">{cls.department}</td>
+                            <td className="py-2 px-3">
+                              {cls.classTeacher ? cls.classTeacher.name : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Assign Class Teacher Tab */}
+          {activeTab === 'teacher' && (
+            <Card>
+              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-blue-600" />
+                Assign Class Teacher
+              </h2>
+              <form onSubmit={handleAssignTeacher} className="space-y-4 max-w-md">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Select Class <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={selectedClassForTeacher}
+                    onChange={e => setSelectedClassForTeacher(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    required
+                  >
+                    <option value="">Choose a class</option>
+                    {classes.map(cls => (
+                      <option key={cls._id} value={cls._id}>
+                        {cls.className} - {cls.department}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ) : (
-                <p className="text-xs text-slate-500">No students assigned to this class yet.</p>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Select Faculty <span className="text-red-600">*</span>
+                    {loadingFaculty && <span className="ml-2 text-xs text-slate-500">(Loading...)</span>}
+                    {!loadingFaculty && faculty.length > 0 && (
+                      <span className="ml-2 text-xs text-slate-500">({faculty.length} available)</span>
+                    )}
+                  </label>
+                  <select
+                    value={selectedTeacherId}
+                    onChange={e => setSelectedTeacherId(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    required
+                    disabled={loadingFaculty}
+                  >
+                    <option value="">Choose a faculty</option>
+                    {faculty.map(f => (
+                      <option key={f.id || f._id} value={f.id || f._id}>
+                        {f.name} ({f.email})
+                      </option>
+                    ))}
+                  </select>
+                  {faculty.length === 0 && !loadingFaculty && (
+                    <p className="text-xs text-red-600 mt-1">No faculty available. Create faculty accounts first.</p>
+                  )}
+                </div>
+                <Button type="submit" variant="primary" disabled={loadingFaculty}>
+                  Assign Teacher
+                </Button>
+              </form>
+            </Card>
+          )}
+
+          {/* Assign Faculties Tab */}
+          {activeTab === 'faculty' && (
+            <Card>
+              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-600" />
+                Assign Faculties to Subjects
+              </h2>
+              <form onSubmit={handleAssignFaculty} className="space-y-4 max-w-md">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Select Class <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={selectedClassForFaculty}
+                    onChange={e => setSelectedClassForFaculty(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    required
+                  >
+                    <option value="">Choose a class</option>
+                    {classes.map(cls => (
+                      <option key={cls._id} value={cls._id}>
+                        {cls.className} - {cls.department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Subject Name <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={subjectForm.subjectName}
+                    onChange={e => setSubjectForm(prev => ({ ...prev, subjectName: e.target.value }))}
+                    placeholder="e.g., Mathematics"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Select Faculty <span className="text-red-600">*</span>
+                    {loadingFaculty && <span className="ml-2 text-xs text-slate-500">(Loading...)</span>}
+                    {!loadingFaculty && faculty.length > 0 && (
+                      <span className="ml-2 text-xs text-slate-500">({faculty.length} available)</span>
+                    )}
+                  </label>
+                  <select
+                    value={subjectForm.teacherId}
+                    onChange={e => setSubjectForm(prev => ({ ...prev, teacherId: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    required
+                    disabled={loadingFaculty}
+                  >
+                    <option value="">Choose a faculty</option>
+                    {faculty.map(f => (
+                      <option key={f.id || f._id} value={f.id || f._id}>
+                        {f.name} ({f.email})
+                      </option>
+                    ))}
+                  </select>
+                  {faculty.length === 0 && !loadingFaculty && (
+                    <p className="text-xs text-red-600 mt-1">No faculty available. Create faculty accounts first.</p>
+                  )}
+                </div>
+                <Button type="submit" variant="primary" disabled={loadingFaculty}>
+                  Assign Faculty
+                </Button>
+              </form>
+            </Card>
+          )}
+
+          {/* Manage Students Tab */}
+          {activeTab === 'students' && (
+            <Card>
+              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-blue-600" />
+                Manage Students
+              </h2>
+              <form onSubmit={handleAssignStudent} className="space-y-4 max-w-md mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Select Class <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={selectedClassForStudents}
+                    onChange={async (e) => {
+                      const classId = e.target.value
+                      setSelectedClassForStudents(classId)
+                      if (classId) {
+                        await loadClassStudents(classId)
+                      }
+                    }}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    required
+                  >
+                    <option value="">Choose a class</option>
+                    {classes.map(cls => (
+                      <option key={cls._id} value={cls._id}>
+                        {cls.className} - {cls.department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Select Student <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={selectedStudentId}
+                    onChange={e => setSelectedStudentId(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    required
+                    disabled={loadingStudents}
+                  >
+                    <option value="">Choose a student</option>
+                    {students.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button type="submit" variant="primary" disabled={loadingStudents}>
+                  Assign Student
+                </Button>
+              </form>
+
+              {/* Class Students List */}
+              {selectedClassForStudents && (
+                <div className="mt-6 border-t border-slate-200 pt-6">
+                  <h3 className="text-md font-semibold text-slate-900 mb-4">
+                    Students in Class ({classStudents.length})
+                  </h3>
+                  {classStudents.length === 0 ? (
+                    <p className="text-sm text-slate-500">No students assigned to this class yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-200">
+                            <th className="text-left py-2 px-3 font-semibold text-slate-600">Name</th>
+                            <th className="text-left py-2 px-3 font-semibold text-slate-600">Student ID</th>
+                            <th className="text-left py-2 px-3 font-semibold text-slate-600">Email</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {classStudents.map(stu => (
+                            <tr key={stu.id || stu._id} className="border-b border-slate-100">
+                              <td className="py-2 px-3">{stu.name}</td>
+                              <td className="py-2 px-3">{stu.studentID || '-'}</td>
+                              <td className="py-2 px-3">{stu.email}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               )}
             </Card>
           )}
         </div>
+
+        {/* Class Details Modal */}
+        <Modal
+          isOpen={showClassDetailsModal}
+          onClose={() => {
+            setShowClassDetailsModal(false)
+            setSelectedClassDetails(null)
+          }}
+          title={selectedClassDetails ? `${selectedClassDetails.className} - Details` : 'Class Details'}
+          size="lg"
+        >
+          {loadingDetails ? (
+            <div className="py-8 text-center">
+              <p className="text-sm text-slate-500">Loading class details...</p>
+            </div>
+          ) : selectedClassDetails ? (
+            <div className="space-y-6">
+              {/* Class Info */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">Class Name</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedClassDetails.className}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">Department</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedClassDetails.department}</p>
+                </div>
+              </div>
+
+              {/* Class Teacher */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                  <UserCheck className="w-4 h-4" />
+                  Class Teacher
+                </h3>
+                {selectedClassDetails.classTeacher ? (
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm font-medium text-slate-900">{selectedClassDetails.classTeacher.name}</p>
+                    <p className="text-xs text-slate-600">{selectedClassDetails.classTeacher.email}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 italic">No class teacher assigned</p>
+                )}
+              </div>
+
+              {/* Subjects & Faculty */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Subjects & Assigned Faculty
+                </h3>
+                {selectedClassDetails.subjects && selectedClassDetails.subjects.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedClassDetails.subjects.map((subject, idx) => (
+                      <div key={idx} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-slate-900">{subject.name}</p>
+                            {subject.teacher ? (
+                              <p className="text-xs text-slate-600 mt-1">
+                                Faculty: {subject.teacher.name} ({subject.teacher.email})
+                              </p>
+                            ) : (
+                              <p className="text-xs text-slate-500 italic mt-1">No faculty assigned</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 italic">No subjects assigned</p>
+                )}
+              </div>
+
+              {/* Students */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  Students ({selectedClassDetails.studentCount || selectedClassDetails.students?.length || 0})
+                </h3>
+                {selectedClassDetails.students && selectedClassDetails.students.length > 0 ? (
+                  <div className="max-h-64 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-white">
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left py-2 px-3 font-semibold text-slate-600">Name</th>
+                          <th className="text-left py-2 px-3 font-semibold text-slate-600">Student ID</th>
+                          <th className="text-left py-2 px-3 font-semibold text-slate-600">Email</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedClassDetails.students.map((stu) => (
+                          <tr key={stu.id || stu._id} className="border-b border-slate-100">
+                            <td className="py-2 px-3">{stu.name}</td>
+                            <td className="py-2 px-3">{stu.studentID || '-'}</td>
+                            <td className="py-2 px-3">{stu.email}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 italic">No students assigned to this class</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-sm text-slate-500">No class details available</p>
+            </div>
+          )}
+        </Modal>
       </motion.div>
     </AdminLayout>
   )
 }
 
 export default AdminClassManagement
-
 

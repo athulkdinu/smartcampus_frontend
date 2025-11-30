@@ -18,12 +18,21 @@ import Button from '../../shared/components/Button'
 import Modal from '../../shared/components/Modal'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { weeklyTimetable } from '../data/academicData'
+import { getStudentAttendanceSummaryAPI } from '../../services/attendanceAPI'
 
 const StudentDashboard = () => {
   const navigate = useNavigate()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showTimetableModal, setShowTimetableModal] = useState(false)
   const [selectedDay, setSelectedDay] = useState(weeklyTimetable[0])
+  const [attendanceSummary, setAttendanceSummary] = useState({
+    percentage: 0,
+    totalClasses: 0,
+    presentCount: 0,
+    absentCount: 0,
+    lateCount: 0
+  })
+  const [loadingAttendance, setLoadingAttendance] = useState(true)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -32,8 +41,34 @@ const StudentDashboard = () => {
     return () => clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    loadAttendanceSummary()
+  }, [])
+
+  const loadAttendanceSummary = async () => {
+    try {
+      setLoadingAttendance(true)
+      const res = await getStudentAttendanceSummaryAPI()
+      if (res?.status === 200) {
+        // New API returns { summary: [], overall: {} }
+        const overall = res.data.overall || res.data // Support both old and new format
+        setAttendanceSummary({
+          percentage: overall.percentage || 0,
+          totalClasses: overall.totalClasses || 0,
+          presentCount: overall.presentCount || 0,
+          absentCount: overall.absentCount || 0,
+          lateCount: overall.lateCount || 0
+        })
+      }
+    } catch (error) {
+      console.error('Error loading attendance summary:', error)
+    } finally {
+      setLoadingAttendance(false)
+    }
+  }
+
   const stats = {
-    attendance: 85,
+    attendance: attendanceSummary.percentage,
     grades: 3.8,
     skillsCompleted: 12,
     placementsApplied: 5,

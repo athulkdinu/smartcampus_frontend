@@ -1,106 +1,155 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import FacultyLayout from '../../shared/layouts/FacultyLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
-import { BookOpen, Users, ClipboardList, Calendar, MessageSquare, Clock, AlertTriangle, Sparkles, ClipboardCheck } from 'lucide-react'
-import { getActiveFacultyProfile } from '../utils/getActiveFaculty'
-import { leaveRequestTickets, eventProposals, complaintTickets, assignmentWorkflows, skillProgramCatalogue } from '../../shared/data/workflowData'
-import { getFacultyClassesAPI } from '../../services/api'
+import { 
+  BookOpen, 
+  Users, 
+  ClipboardList, 
+  Calendar,
+  CalendarCheck,
+  AlertTriangle,
+  Sparkles,
+  FileText,
+  GraduationCap,
+  ArrowRight
+} from 'lucide-react'
+import { getFacultyClassesAPI } from '../../services/attendanceAPI'
+import { getFacultyAssignmentsAPI } from '../../services/assignmentAPI'
+import { getFacultyLeaveRequestsAPI } from '../../services/api'
+import toast from 'react-hot-toast'
 
 const FacultyDashboard = () => {
   const navigate = useNavigate()
   const [facultyClasses, setFacultyClasses] = useState([])
-  const selectedFaculty = useMemo(() => getActiveFacultyProfile(), [])
+  const [activeAssignments, setActiveAssignments] = useState(0)
+  const [pendingLeaveRequests, setPendingLeaveRequests] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadClasses = async () => {
-      try {
-        const res = await getFacultyClassesAPI()
-        if (res?.status === 200 && Array.isArray(res.data.classes)) {
-          setFacultyClasses(res.data.classes)
-        }
-      } catch {
-        // silently ignore, demo data will still show
-      }
-    }
-    loadClasses()
+    loadDashboardData()
   }, [])
 
-  const statCards = [
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true)
+      
+      // Load classes
+      const classesRes = await getFacultyClassesAPI()
+      if (classesRes?.status === 200) {
+        setFacultyClasses(classesRes.data.classes || [])
+      }
+
+      // Load assignments
+      const assignmentsRes = await getFacultyAssignmentsAPI()
+      if (assignmentsRes?.status === 200) {
+        const published = (assignmentsRes.data.assignments || []).filter(a => a.status === 'Published')
+        setActiveAssignments(published.length)
+      }
+
+      // Load leave requests
+      try {
+        const leaveRes = await getFacultyLeaveRequestsAPI()
+        if (leaveRes?.status === 200) {
+          const pending = (leaveRes.data.leaveRequests || []).filter(l => l.status === 'pending')
+          setPendingLeaveRequests(pending.length)
+        }
+      } catch {
+        // Silently fail if leave API not available
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Summary Cards
+  const summaryCards = [
     {
-      label: 'Sections This Subject',
-      value: selectedFaculty.stats.sections,
-      icon: BookOpen,
+      label: 'Total Classes',
+      value: loading ? '...' : facultyClasses.length,
+      icon: GraduationCap,
       color: 'from-blue-500 to-blue-600',
-      onClick: () => {}
+      onClick: () => navigate('/faculty/students')
     },
     {
-      label: 'Students Enrolled',
-      value: selectedFaculty.stats.students,
-      icon: Users,
-      color: 'from-slate-600 to-slate-700',
-      onClick: () => {}
+      label: 'Active Assignments',
+      value: loading ? '...' : activeAssignments,
+      icon: FileText,
+      color: 'from-indigo-500 to-indigo-600',
+      onClick: () => navigate('/faculty/assignments')
     },
     {
       label: 'Pending Grading',
-      value: selectedFaculty.stats.pendingGrading,
+      value: '0', // TODO: Connect to grading API when available
       icon: ClipboardList,
       color: 'from-orange-500 to-orange-600',
-      onClick: () => {}
+      onClick: () => navigate('/faculty/grading')
     },
     {
-      label: 'Avg Attendance',
-      value: `${selectedFaculty.stats.attendance}%`,
-      icon: Calendar,
-      color: 'from-green-500 to-green-600',
-      onClick: () => {}
-    },
-    {
-      label: 'Labs This Week',
-      value: selectedFaculty.stats.labs,
-      icon: ClipboardList,
-      color: 'from-indigo-500 to-indigo-600',
-      onClick: () => {}
+      label: 'Pending Leave Requests',
+      value: loading ? '...' : pendingLeaveRequests,
+      icon: CalendarCheck,
+      color: 'from-rose-500 to-rose-600',
+      onClick: () => navigate('/faculty/leave-requests')
     }
   ]
 
-  const quickActions = [
-    { title: 'Academic Management', desc: 'Share plans, upload files', icon: BookOpen, path: '/faculty/academic' },
-    { title: 'Grading', desc: 'Manage grades and assignments', icon: ClipboardList, path: '/faculty/grading' },
-    { title: 'Attendance', desc: 'Record and track attendance', icon: Calendar, path: '/faculty/attendance' },
-    { title: 'Leave Requests', desc: 'Approve student leave tickets', icon: ClipboardCheck, path: '/faculty/leave-requests' },
-    { title: 'Complaints Center', desc: 'Resolve or escalate issues', icon: AlertTriangle, path: '/faculty/complaints' },
-    { title: 'Event Requests', desc: 'Review student proposals', icon: Sparkles, path: '/faculty/event-requests' }
-  ]
-
-  const workflowWidgets = [
-    {
-      title: 'Leave Requests',
-      metric: leaveRequestTickets.filter(item => item.status === 'pending').length,
-      meta: 'need your approval',
-      accent: 'from-rose-500 to-rose-600',
-      path: '/faculty/leave-requests'
+  // Action Shortcuts
+  const actionShortcuts = [
+    { 
+      title: 'Academic Materials', 
+      desc: 'Upload lecture notes, PPTs, and study materials',
+      icon: BookOpen, 
+      path: '/faculty/academic',
+      color: 'blue'
     },
-    {
-      title: 'Event Proposals',
-      metric: eventProposals.filter(item => item.status === 'pending').length,
-      meta: 'awaiting faculty decision',
-      accent: 'from-purple-500 to-indigo-500',
-      path: '/faculty/event-requests'
+    { 
+      title: 'Assignments', 
+      desc: 'Create and review student assignments',
+      icon: FileText, 
+      path: '/faculty/assignments',
+      color: 'indigo'
     },
-    {
-      title: 'Complaints Queue',
-      metric: complaintTickets.filter(item => item.status !== 'resolved').length,
-      meta: 'open campus issues',
-      accent: 'from-amber-500 to-orange-500',
-      path: '/faculty/complaints'
+    { 
+      title: 'Attendance', 
+      desc: 'Mark and track student attendance',
+      icon: Calendar, 
+      path: '/faculty/attendance',
+      color: 'green'
+    },
+    { 
+      title: 'Grading', 
+      desc: 'Manage grades and exam marks',
+      icon: ClipboardList, 
+      path: '/faculty/grading',
+      color: 'orange'
+    },
+    { 
+      title: 'Leave Requests', 
+      desc: 'Approve or reject student leave requests',
+      icon: CalendarCheck, 
+      path: '/faculty/leave-requests',
+      color: 'rose'
+    },
+    { 
+      title: 'Complaints', 
+      desc: 'View and respond to student complaints',
+      icon: AlertTriangle, 
+      path: '/faculty/complaints',
+      color: 'amber'
     }
   ]
 
-  const assignmentQueueCount = assignmentWorkflows.reduce((acc, assignment) => acc + assignment.submissions.filter(sub => sub.status !== 'accepted').length, 0)
-  const publishedSkillPrograms = skillProgramCatalogue.filter(program => program.status !== 'draft').length
+  // Recent Activity (placeholder - can be connected to real data later)
+  const recentActivities = [
+    { type: 'assignment', text: 'New assignment submission received', time: '2 hours ago', path: '/faculty/assignments' },
+    { type: 'leave', text: 'Leave request from student', time: '5 hours ago', path: '/faculty/leave-requests' },
+    { type: 'event', text: 'Event proposal needs review', time: '1 day ago', path: '/faculty/event-requests' },
+  ]
 
   return (
     <FacultyLayout>
@@ -111,45 +160,33 @@ const FacultyDashboard = () => {
       >
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1">
+          <div>
             <p className="text-sm uppercase tracking-wide text-slate-500">Faculty Dashboard</p>
-            <h1 className="text-3xl font-bold text-slate-900">Welcome back, {selectedFaculty.name}</h1>
-            <p className="text-slate-600">
-              Subject focus: {selectedFaculty.subject.name} ({selectedFaculty.subject.code})
-            </p>
-          </div>
-          <div className="flex gap-3">
-            {/* <Button variant="secondary">
-              <Calendar className="w-4 h-4 mr-2" />
-              View Calendar
-            </Button> */}
-            <Button variant="primary">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Post Announcement
-            </Button>
+            <h1 className="text-3xl font-bold text-slate-900">Overview</h1>
+            <p className="text-slate-600">Quick summary and navigation to all faculty features</p>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          {statCards.map((stat, idx) => {
-            const Icon = stat.icon
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {summaryCards.map((card, idx) => {
+            const Icon = card.icon
             return (
               <motion.div
-                key={stat.label}
+                key={card.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
                 whileHover={{ y: -4 }}
               >
-                <Card onClick={stat.onClick} className="cursor-pointer">
+                <Card onClick={card.onClick} className="cursor-pointer hover:shadow-lg transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">{stat.label}</p>
-                      <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+                      <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">{card.label}</p>
+                      <p className="text-3xl font-bold text-slate-900">{card.value}</p>
                     </div>
-                    <div className={`w-16 h-16 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}>
-                      <Icon className="w-8 h-8 text-white" />
+                    <div className={`w-14 h-14 bg-gradient-to-br ${card.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                      <Icon className="w-7 h-7 text-white" />
                     </div>
                   </div>
                 </Card>
@@ -158,175 +195,71 @@ const FacultyDashboard = () => {
           })}
         </div>
 
-        {/* Workflow Widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {workflowWidgets.map((widget, idx) => (
-            <motion.div
-              key={widget.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-            >
-              <Card className="h-full bg-slate-900 text-white relative overflow-hidden">
-                <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.25),_transparent_60%)]" />
-                <div className="relative space-y-4">
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-700">{widget.title}</p>
-                  <div className="flex items-end gap-2">
-                    <p className="text-4xl font-bold">{widget.metric}</p>
-                    <p className="text-sm text-black ">{widget.meta}</p>
-                  </div>
-                  <div className={`w-20 h-1 rounded-full bg-gradient-to-r ${widget.accent}`} />
-                  <Button variant="ghost" className="text-slate-100 hover:text-white hover:bg-white/10" onClick={() => navigate(widget.path)}>
-                    Manage
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - 2/3 */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Pending Tasks */}
-            <Card>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-slate-900">Pending Tasks</h2>
-                <Button variant="ghost" size="sm">View All →</Button>
-              </div>
-              <div className="space-y-3">
-                {selectedFaculty.tasks.map((task, idx) => (
-                  <motion.div
-                    key={`${task.title}-${idx}`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className={`p-4 rounded-xl border-l-4 ${
-                      task.priority === 'high'
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-amber-500 bg-amber-50'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-slate-900 mb-1">{task.title}</h3>
-                        <p className="text-sm text-slate-600">{task.context}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        task.priority === 'high'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {task.dueDate}
-                      </span>
+        {/* Action Shortcuts */}
+        <Card>
+          <h2 className="text-xl font-bold text-slate-900 mb-6">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {actionShortcuts.map((action, idx) => {
+              const Icon = action.icon
+              return (
+                <motion.button
+                  key={action.title}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileHover={{ y: -2 }}
+                  onClick={() => navigate(action.path)}
+                  className="p-5 rounded-xl border-2 border-slate-200 bg-white hover:border-blue-300 hover:shadow-md transition-all text-left group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 bg-${action.color}-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                      <Icon className={`w-6 h-6 text-${action.color}-600`} />
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-slate-900">Quick Actions</h2>
-                <div className="text-xs text-slate-500">
-                  <span className="font-semibold text-slate-900">{assignmentQueueCount}</span> submissions waiting ·{' '}
-                  <span className="font-semibold text-slate-900">{publishedSkillPrograms}</span> skill programs live
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {quickActions.map((action) => {
-                  const Icon = action.icon
-                  return (
-                    <motion.button
-                      key={action.title}
-                      whileHover={{ y: -4 }}
-                      onClick={() => navigate(action.path)}
-                      className="p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-200 hover:shadow-md transition text-left"
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                          <Icon className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <h3 className="font-semibold text-slate-900">{action.title}</h3>
-                      </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-slate-900 mb-1">{action.title}</h3>
                       <p className="text-sm text-slate-600">{action.desc}</p>
-                    </motion.button>
-                  )
-                })}
-              </div>
-            </Card>
-          </div>
-
-          {/* Right Column - 1/3 */}
-          <div className="space-y-6">
-            {/* Today's Sessions */}
-            <Card>
-              <h2 className="text-lg font-bold text-slate-900 mb-5">Today's Sessions</h2>
-              <div className="space-y-3">
-                {selectedFaculty.todaysSessions.map((classItem, idx) => (
-                  <motion.div
-                    key={`${classItem.section}-${idx}`}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + idx * 0.1 }}
-                    className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-slate-900">{classItem.section}</h3>
-                        <p className="text-sm text-slate-600">{classItem.room} · {classItem.format}</p>
-                      </div>
-                      <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-lg">
-                        {classItem.time}
-                      </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Users className="w-3 h-3" />
-                      <span>{classItem.students} students</span>
-                    </div>
-                  </motion.div>
-                ))}
-                {selectedFaculty.todaysSessions.length === 0 && (
-                  <p className="text-sm text-slate-500">No sessions scheduled for today.</p>
-                )}
-              </div>
-            </Card>
-
-            {/* Recent Activities */}
-            <Card>
-              <h2 className="text-lg font-bold text-slate-900 mb-5">Recent Activities</h2>
-              <div className="space-y-3">
-                {selectedFaculty.activities.map((activity, idx) => {
-                  const Icon = activity.icon
-                  return (
-                    <motion.div
-                      key={`${activity.title}-${idx}`}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.4 + idx * 0.1 }}
-                      className="p-3 bg-slate-50 rounded-xl border border-slate-200"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Icon className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm text-slate-900 mb-1">{activity.title}</p>
-                          <p className="text-xs text-slate-500 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {activity.time}
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )
-                })}
-              </div>
-            </Card>
+                    <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                  </div>
+                </motion.button>
+              )
+            })}
           </div>
-        </div>
+        </Card>
+
+        {/* Recent Activity */}
+        <Card>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-slate-900">Recent Activity</h2>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/faculty/notifications')}>
+              View All
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {recentActivities.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-4">No recent activity</p>
+            ) : (
+              recentActivities.map((activity, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  onClick={() => navigate(activity.path)}
+                  className="p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-blue-300 cursor-pointer transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-900">{activity.text}</p>
+                      <p className="text-xs text-slate-500 mt-1">{activity.time}</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400" />
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
+        </Card>
       </motion.div>
     </FacultyLayout>
   )
