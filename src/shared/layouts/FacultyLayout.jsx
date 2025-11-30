@@ -14,7 +14,8 @@ import {
   Bell,
   FileText,
   GraduationCap,
-  ChevronRight
+  ChevronRight,
+  Award
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -56,6 +57,7 @@ const FacultyLayout = ({ children }) => {
         { icon: FileText, label: 'Assignments', path: '/faculty/assignments' },
         { icon: ClipboardList, label: 'Grading', path: '/faculty/grading' },
         { icon: Calendar, label: 'Attendance', path: '/faculty/attendance' },
+        { icon: Award, label: 'Skills Development', path: '/faculty/skills' },
       ]
     },
     {

@@ -239,69 +239,78 @@ const SkillsPage = () => {
     console.log('Enroll in skill:', skillId)
   }
 
-  // Recommended skills mock data
-  const recommendedSkills = [
-    {
-      id: 'rec-1',
-      title: 'Machine Learning Basics',
-      category: 'AI/ML',
-      description: 'Learn the fundamentals of machine learning and build your first ML models',
-      difficulty: 'Intermediate',
-      duration: '6 weeks',
-      status: 'Published',
-      startDate: 'Available Now'
-    },
-    {
-      id: 'rec-2',
-      title: 'Cloud Computing with AWS',
-      category: 'Technology',
-      description: 'Master cloud infrastructure and deploy scalable applications on AWS',
-      difficulty: 'Advanced',
-      duration: '8 weeks',
-      status: 'Published',
-      startDate: 'Available Now'
-    },
-    {
-      id: 'rec-3',
-      title: 'DevOps Fundamentals',
-      category: 'Technology',
-      description: 'Learn CI/CD, Docker, Kubernetes, and modern DevOps practices',
-      difficulty: 'Intermediate',
-      duration: '5 weeks',
-      status: 'Upcoming',
-      startDate: 'Starts Feb 15, 2025'
-    },
-    {
-      id: 'rec-4',
-      title: 'Mobile App Development',
-      category: 'Development',
-      description: 'Build cross-platform mobile apps using React Native',
-      difficulty: 'Intermediate',
-      duration: '7 weeks',
-      status: 'Published',
-      startDate: 'Available Now'
-    },
-    {
-      id: 'rec-5',
-      title: 'Blockchain Development',
-      category: 'Technology',
-      description: 'Learn blockchain technology and smart contract development',
-      difficulty: 'Advanced',
-      duration: '10 weeks',
-      status: 'Upcoming',
-      startDate: 'Starts Mar 1, 2025'
-    },
-    {
-      id: 'rec-6',
-      title: 'Cybersecurity Essentials',
-      category: 'Security',
-      description: 'Master security fundamentals and protect applications from threats',
-      difficulty: 'Intermediate',
-      duration: '6 weeks',
-      status: 'Published',
-      startDate: 'Available Now'
+  // Recommended skills - load from published skills (faculty published) + default mock data
+  const [recommendedSkills, setRecommendedSkills] = useState(() => {
+    // Load published skills from localStorage
+    const publishedSkills = JSON.parse(localStorage.getItem('published_skills') || '[]')
+    
+    // Default mock skills as fallback
+    const defaultSkills = [
+      {
+        id: 'rec-1',
+        title: 'Machine Learning Basics',
+        category: 'AI/ML',
+        description: 'Learn the fundamentals of machine learning and build your first ML models',
+        difficulty: 'Intermediate',
+        duration: '6 weeks',
+        status: 'Published',
+        startDate: 'Available Now'
+      },
+      {
+        id: 'rec-2',
+        title: 'Cloud Computing with AWS',
+        category: 'Technology',
+        description: 'Master cloud infrastructure and deploy scalable applications on AWS',
+        difficulty: 'Advanced',
+        duration: '8 weeks',
+        status: 'Published',
+        startDate: 'Available Now'
+      }
+    ]
+    
+    // Combine published skills with defaults (published skills first)
+    return [...publishedSkills, ...defaultSkills]
+  })
+
+  // Update recommended skills when localStorage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const publishedSkills = JSON.parse(localStorage.getItem('published_skills') || '[]')
+      const defaultSkills = [
+        {
+          id: 'rec-1',
+          title: 'Machine Learning Basics',
+          category: 'AI/ML',
+          description: 'Learn the fundamentals of machine learning and build your first ML models',
+          difficulty: 'Intermediate',
+          duration: '6 weeks',
+          status: 'Published',
+          startDate: 'Available Now'
+        },
+        {
+          id: 'rec-2',
+          title: 'Cloud Computing with AWS',
+          category: 'Technology',
+          description: 'Master cloud infrastructure and deploy scalable applications on AWS',
+          difficulty: 'Advanced',
+          duration: '8 weeks',
+          status: 'Published',
+          startDate: 'Available Now'
+        }
+      ]
+      setRecommendedSkills([...publishedSkills, ...defaultSkills])
     }
-  ]
+
+    // Listen for storage changes
+    window.addEventListener('storage', handleStorageChange)
+    // Also check periodically (for same-tab updates)
+    const interval = setInterval(handleStorageChange, 1000)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      clearInterval(interval)
+    }
+  }, [])
 
   return (
     <MainLayout>
