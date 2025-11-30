@@ -39,12 +39,7 @@ const SkillBuilder = () => {
     }
   }, [skillId, skills, navigate])
 
-  const isRoundLocked = (roundNumber) => {
-    if (roundNumber === 1) return false
-    // Check if previous round is completed
-    const previousRound = skill?.rounds.find(r => r.roundNumber === roundNumber - 1)
-    return !previousRound?.completed
-  }
+  // No locking for faculty - they can edit all rounds freely
 
   const allRoundsCompleted = skill?.rounds.every(r => r.completed) || false
 
@@ -68,14 +63,6 @@ const SkillBuilder = () => {
     localStorage.setItem('faculty_skills', JSON.stringify(updatedSkills))
     
     toast.success(`Round ${roundNumber} saved successfully!`)
-    
-    // Auto-expand next round if available
-    if (roundNumber < 4) {
-      const nextRound = roundNumber + 1
-      if (!isRoundLocked(nextRound)) {
-        setExpandedRound(nextRound)
-      }
-    }
   }
 
   const handleTogglePublish = () => {
@@ -230,10 +217,6 @@ const SkillBuilder = () => {
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-slate-900">Learning Rounds</h2>
           {skill.rounds.map((round) => {
-            const isLocked = isRoundLocked(round.roundNumber)
-            const previousRound = skill.rounds.find(r => r.roundNumber === round.roundNumber - 1)
-            const previousRoundCompleted = round.roundNumber === 1 || previousRound?.completed || false
-
             return (
               <RoundEditor
                 key={round.roundNumber}
@@ -241,17 +224,15 @@ const SkillBuilder = () => {
                 isExpanded={expandedRound === round.roundNumber}
                 onToggle={() => setExpandedRound(expandedRound === round.roundNumber ? null : round.roundNumber)}
                 onSave={(roundData) => handleSaveRound(round.roundNumber, roundData)}
-                isLocked={isLocked}
-                previousRoundCompleted={previousRoundCompleted}
               />
             )
           })}
         </div>
 
-        {/* Progress Summary */}
+        {/* Content Summary */}
         <Card>
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Progress Summary</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Content Summary</h3>
             <div className="space-y-2">
               {skill.rounds.map((round) => (
                 <div key={round.roundNumber} className="flex items-center justify-between">
@@ -263,7 +244,7 @@ const SkillBuilder = () => {
                       ? 'bg-green-100 text-green-700'
                       : 'bg-slate-100 text-slate-600'
                   }`}>
-                    {round.completed ? 'Completed' : 'Incomplete'}
+                    {round.completed ? 'Content Added' : 'No Content'}
                   </span>
                 </div>
               ))}
@@ -271,7 +252,7 @@ const SkillBuilder = () => {
             <div className="mt-4 pt-4 border-t border-slate-200">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-700">
-                  Overall Progress
+                  Rounds with Content
                 </span>
                 <span className="text-lg font-bold text-slate-900">
                   {skill.rounds.filter(r => r.completed).length} / 4 rounds

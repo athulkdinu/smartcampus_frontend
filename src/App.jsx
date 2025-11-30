@@ -46,6 +46,7 @@ import FacultyEventRequests from './faculty/pages/FacultyEventRequests'
 import FacultyAssignments from './faculty/pages/FacultyAssignments'
 import FacultySkillsManagement from './faculty/pages/FacultySkillsManagement'
 import SkillBuilder from './faculty/pages/SkillBuilder'
+import ViewStudentProgress from './faculty/pages/ViewStudentProgress'
 import './App.css'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 
@@ -165,6 +166,7 @@ function App() {
         <Route path="/faculty/event-requests" element={<FacultyEventRequests />} />
         <Route path="/faculty/skills" element={<FacultySkillsManagement />} />
         <Route path="/faculty/skills/:skillId" element={<SkillBuilder />} />
+        <Route path="/faculty/skills/:skillId/students" element={<ViewStudentProgress />} />
         
         {/* HR Routes */}
         <Route path="/hr" element={<Navigate to="/hr/dashboard" replace />} />

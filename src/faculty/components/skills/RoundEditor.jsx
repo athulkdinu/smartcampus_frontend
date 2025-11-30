@@ -9,9 +9,7 @@ const RoundEditor = ({
   round, 
   isExpanded, 
   onToggle, 
-  onSave, 
-  isLocked,
-  previousRoundCompleted 
+  onSave
 }) => {
   const [roundData, setRoundData] = useState({
     title: round.title || '',
@@ -100,7 +98,6 @@ const RoundEditor = ({
 
   const getStatusColor = () => {
     if (round.completed) return 'bg-green-50 border-green-200'
-    if (isLocked) return 'bg-slate-50 border-slate-200 opacity-60'
     return 'bg-blue-50 border-blue-200'
   }
 
@@ -112,15 +109,13 @@ const RoundEditor = ({
       <Card className={`${getStatusColor()} transition-all`}>
         {/* Round Header */}
         <div
-          className={`flex items-center justify-between p-4 cursor-pointer ${isLocked ? 'cursor-not-allowed' : ''}`}
-          onClick={() => !isLocked && onToggle()}
+          className="flex items-center justify-between p-4 cursor-pointer"
+          onClick={onToggle}
         >
           <div className="flex items-center gap-4 flex-1">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
               round.completed
                 ? 'bg-green-500 text-white'
-                : isLocked
-                ? 'bg-slate-300 text-slate-600'
                 : 'bg-blue-500 text-white'
             }`}>
               {round.completed ? (
@@ -132,39 +127,23 @@ const RoundEditor = ({
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-1">
                 <h3 className="text-lg font-bold text-slate-900">{roundData.title}</h3>
-                {isLocked && (
-                  <span className="px-2 py-1 rounded text-xs font-semibold bg-slate-200 text-slate-600">
-                    Locked
-                  </span>
-                )}
                 {round.completed && (
                   <span className="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">
-                    Completed
+                    Content Added
                   </span>
                 )}
               </div>
               <p className="text-sm text-slate-600">{round.type} Round</p>
             </div>
           </div>
-          {!isLocked && (
-            <button className="text-slate-400 hover:text-slate-600">
-              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-            </button>
-          )}
+          <button className="text-slate-400 hover:text-slate-600">
+            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </button>
         </div>
-
-        {/* Locked Message */}
-        {isLocked && (
-          <div className="px-4 pb-4">
-            <p className="text-sm text-slate-500 italic">
-              Complete Round {round.roundNumber - 1} to unlock this round
-            </p>
-          </div>
-        )}
 
         {/* Expanded Content */}
         <AnimatePresence>
-          {isExpanded && !isLocked && (
+          {isExpanded && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}

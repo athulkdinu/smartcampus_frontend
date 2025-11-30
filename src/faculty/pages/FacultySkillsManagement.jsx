@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import FacultyLayout from '../../shared/layouts/FacultyLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
-import { Plus, BookOpen, Edit, Globe, FileText } from 'lucide-react'
+import { Plus, BookOpen, Edit, Globe, FileText, Users, CheckCircle2, Eye } from 'lucide-react'
 
 const FacultySkillsManagement = () => {
   const navigate = useNavigate()
@@ -12,6 +12,23 @@ const FacultySkillsManagement = () => {
     // Load from localStorage or use empty array
     const saved = localStorage.getItem('faculty_skills')
     return saved ? JSON.parse(saved) : []
+  })
+
+  // Mock student enrollment data - in real app, this would come from backend
+  const [studentEnrollments] = useState(() => {
+    const saved = localStorage.getItem('skill_student_enrollments')
+    if (saved) return JSON.parse(saved)
+    
+    // Initialize with mock data
+    const mockData = {}
+    skills.forEach(skill => {
+      mockData[skill.id] = {
+        enrolled: Math.floor(Math.random() * 50) + 10,
+        completed: Math.floor(Math.random() * 20) + 2
+      }
+    })
+    localStorage.setItem('skill_student_enrollments', JSON.stringify(mockData))
+    return mockData
   })
 
   useEffect(() => {
@@ -71,6 +88,10 @@ const FacultySkillsManagement = () => {
     navigate(`/faculty/skills/${skillId}`)
   }
 
+  const handleViewProgress = (skillId) => {
+    navigate(`/faculty/skills/${skillId}/students`)
+  }
+
   const getStatusBadge = (status, published) => {
     if (published) {
       return (
@@ -88,9 +109,8 @@ const FacultySkillsManagement = () => {
     )
   }
 
-  const getCompletionStatus = (skill) => {
-    const completedRounds = skill.rounds.filter(r => r.completed).length
-    return `${completedRounds}/4 rounds completed`
+  const getEnrollmentStats = (skillId) => {
+    return studentEnrollments[skillId] || { enrolled: 0, completed: 0 }
   }
 
   return (
@@ -112,7 +132,7 @@ const FacultySkillsManagement = () => {
           </Button>
         </div>
 
-        {/* Skills List */}
+        {/* Skills Grid */}
         {skills.length === 0 ? (
           <Card>
             <div className="text-center py-16">
@@ -126,55 +146,77 @@ const FacultySkillsManagement = () => {
             </div>
           </Card>
         ) : (
-          <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Skill Title</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Status</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Progress</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {skills.map((skill, idx) => (
-                    <motion.tr
-                      key={skill.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="border-b border-slate-100 hover:bg-slate-50"
-                    >
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-3">
-                          <BookOpen className="w-5 h-5 text-blue-600" />
-                          <span className="font-medium text-slate-900">{skill.title}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {skills.map((skill, idx) => {
+              const stats = getEnrollmentStats(skill.id)
+              
+              return (
+                <motion.div
+                  key={skill.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                >
+                  <Card className="h-full flex flex-col">
+                    <div className="flex-1">
+                      {/* Skill Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <BookOpen className="w-5 h-5 text-blue-600" />
+                            <h3 className="text-lg font-bold text-slate-900">{skill.title}</h3>
+                          </div>
+                          {getStatusBadge(skill.status, skill.published)}
                         </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        {getStatusBadge(skill.status, skill.published)}
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-slate-600">{getCompletionStatus(skill)}</span>
-                      </td>
-                      <td className="py-4 px-4">
+                      </div>
+
+                      {/* Student Stats */}
+                      <div className="space-y-3 mb-4">
+                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm font-medium text-slate-700">Students Enrolled</span>
+                          </div>
+                          <span className="text-lg font-bold text-slate-900">{stats.enrolled}</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-slate-700">Students Completed</span>
+                          </div>
+                          <span className="text-lg font-bold text-slate-900">{stats.completed}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-4 border-t border-slate-200">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleManage(skill.id)}
+                        className="flex-1 flex items-center justify-center gap-2"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Edit
+                      </Button>
+                      {skill.published && stats.enrolled > 0 && (
                         <Button
-                          variant="secondary"
+                          variant="primary"
                           size="sm"
-                          onClick={() => handleManage(skill.id)}
-                          className="flex items-center gap-2"
+                          onClick={() => handleViewProgress(skill.id)}
+                          className="flex-1 flex items-center justify-center gap-2"
                         >
-                          <Edit className="w-4 h-4" />
-                          Manage
+                          <Eye className="w-4 h-4" />
+                          View Progress
                         </Button>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+                      )}
+                    </div>
+                  </Card>
+                </motion.div>
+              )
+            })}
+          </div>
         )}
       </motion.div>
     </FacultyLayout>
@@ -182,4 +224,3 @@ const FacultySkillsManagement = () => {
 }
 
 export default FacultySkillsManagement
-
