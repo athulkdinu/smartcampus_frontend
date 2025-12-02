@@ -78,7 +78,7 @@ const HRCreateJob = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="lg:col-span-2 border border-slate-100/10 bg-white/85 backdrop-blur">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -122,27 +122,6 @@ const HRCreateJob = () => {
                 </Button>
               </div>
             </form>
-          </Card>
-
-          <Card className="border border-slate-100/10 bg-white/80 backdrop-blur">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Live Postings</h2>
-            <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-              {jobs.map(job => (
-                <div key={job.id} className="p-4 rounded-2xl border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-400">{job.id}</p>
-                      <h3 className="text-base font-semibold text-slate-900">{job.title}</h3>
-                      <p className="text-xs text-slate-500">{job.company}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${job.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : job.status === 'Screening' ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
-                      {job.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">Deadline {job.deadline}</p>
-                </div>
-              ))}
-            </div>
           </Card>
         </div>
       </div>
