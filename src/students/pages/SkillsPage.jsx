@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import toast from 'react-hot-toast'
 import MainLayout from '../../shared/layouts/MainLayout'
 import Card from '../../shared/components/Card'
+import Button from '../../shared/components/Button'
+import Modal from '../../shared/components/Modal'
+import FormInput from '../../shared/components/FormInput'
 import SkillSummaryCards from '../components/skills/SkillSummaryCards'
 import SkillCards from '../components/skills/SkillCards'
 import RecommendedSkills from '../components/skills/RecommendedSkills'
+import { Plus, CheckCircle2, XCircle, Clock, FileText, ExternalLink } from 'lucide-react'
+import { submitSkillAPI, getMySkillsAPI } from '../../services/skillAPI'
 
 const SkillsPage = () => {
   const navigate = useNavigate()
@@ -209,18 +215,111 @@ const SkillsPage = () => {
     learningHours: '142h / 2,450 XP'
   })
 
+  // Skill submissions state
+  const [submittedSkills, setSubmittedSkills] = useState([])
+  const [loadingSkills, setLoadingSkills] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [newSkill, setNewSkill] = useState({
+    title: '',
+    provider: '',
+    certificateUrl: ''
+  })
+
+  // Load submitted skills
+  useEffect(() => {
+    loadSubmittedSkills()
+  }, [])
+
+  const loadSubmittedSkills = async () => {
+    try {
+      setLoadingSkills(true)
+      const res = await getMySkillsAPI()
+      if (res?.status === 200) {
+        setSubmittedSkills(res.data.skills || [])
+        // Update certificates count
+        const approvedCount = (res.data.skills || []).filter(s => s.status === 'approved').length
+        setStats(prev => ({
+          ...prev,
+          certificates: approvedCount
+        }))
+      }
+    } catch (error) {
+      console.error('Error loading submitted skills:', error)
+    } finally {
+      setLoadingSkills(false)
+    }
+  }
+
+  const handleSubmitSkill = async (e) => {
+    e.preventDefault()
+    if (!newSkill.title.trim()) {
+      toast.error('Please enter a skill title')
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      const res = await submitSkillAPI({
+        title: newSkill.title,
+        provider: newSkill.provider || null,
+        certificateUrl: newSkill.certificateUrl || null
+      })
+
+      if (res?.status === 201) {
+        toast.success('Skill submitted successfully')
+        setShowAddModal(false)
+        setNewSkill({ title: '', provider: '', certificateUrl: '' })
+        await loadSubmittedSkills()
+      } else {
+        toast.error(res?.response?.data?.message || 'Failed to submit skill')
+      }
+    } catch (error) {
+      console.error('Error submitting skill:', error)
+      toast.error(error?.response?.data?.message || 'Failed to submit skill')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'approved':
+        return (
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" />
+            Approved
+          </span>
+        )
+      case 'rejected':
+        return (
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200 flex items-center gap-1">
+            <XCircle className="w-3 h-3" />
+            Rejected
+          </span>
+        )
+      case 'pending':
+      default:
+        return (
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 border border-yellow-200 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            Pending
+          </span>
+        )
+    }
+  }
+
   // Calculate stats from skills
   useEffect(() => {
     const completed = skills.filter(s => s.status === 'Completed').length
     const inProgress = skills.filter(s => s.status === 'In Progress').length
-    const certificates = completed // Assuming one certificate per completed skill
     
-    setStats({
+    setStats(prev => ({
       completed,
       inProgress,
-      certificates,
+      certificates: prev.certificates, // Updated from submitted skills
       learningHours: '142h / 2,450 XP'
-    })
+    }))
   }, [skills])
 
   const handleContinue = (skillId) => {
@@ -338,13 +437,149 @@ const SkillsPage = () => {
           />
         </div>
 
+        {/* Section 3: My Certifications/Submitted Skills */}
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-slate-900">My Certifications</h2>
+            <Button variant="primary" onClick={() => setShowAddModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Skill/Certificate
+            </Button>
+          </div>
+          
+          {loadingSkills ? (
+            <Card>
+              <div className="text-center py-12 text-slate-400">
+                <Clock className="w-12 h-12 mx-auto mb-3 opacity-50 animate-pulse" />
+                <p>Loading certifications...</p>
+              </div>
+            </Card>
+          ) : submittedSkills.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {submittedSkills.map((skill) => (
+                <motion.div
+                  key={skill._id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card className="h-full flex flex-col">
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="text-lg font-bold text-slate-900">{skill.title}</h3>
+                        {getStatusBadge(skill.status)}
+                      </div>
+                      {skill.provider && (
+                        <p className="text-sm text-slate-600 mb-2">
+                          <span className="font-medium">Provider:</span> {skill.provider}
+                        </p>
+                      )}
+                      <p className="text-xs text-slate-500 mb-3">
+                        Submitted: {new Date(skill.createdAt).toLocaleDateString()}
+                      </p>
+                      {skill.status === 'rejected' && skill.remarks && (
+                        <div className="p-3 rounded-lg bg-red-50 border border-red-200 mb-3">
+                          <p className="text-xs font-medium text-red-700 mb-1">Remarks:</p>
+                          <p className="text-xs text-red-600">{skill.remarks}</p>
+                        </div>
+                      )}
+                      {skill.status === 'approved' && skill.approvedBy && (
+                        <p className="text-xs text-slate-500">
+                          Approved by: {skill.approvedBy?.name || 'Faculty'}
+                        </p>
+                      )}
+                    </div>
+                    {skill.certificateUrl && (
+                      <div className="pt-3 border-t border-slate-200 mt-3">
+                        <a
+                          href={skill.certificateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          View Certificate
+                        </a>
+                      </div>
+                    )}
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <div className="text-center py-12">
+                <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">No certifications submitted</h3>
+                <p className="text-slate-500 mb-6">Submit your completed skills and certificates for faculty verification</p>
+                <Button variant="primary" onClick={() => setShowAddModal(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Skill
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
+
         {/* Section 4: Recommended Skills */}
-            <div>
+        <div>
           <RecommendedSkills
             recommendedSkills={recommendedSkills}
             onEnroll={handleEnroll}
           />
-          </div>
+        </div>
+
+        {/* Add Skill Modal */}
+        <Modal
+          isOpen={showAddModal}
+          onClose={() => {
+            setShowAddModal(false)
+            setNewSkill({ title: '', provider: '', certificateUrl: '' })
+          }}
+          title="Add Skill/Certificate"
+          size="md"
+        >
+          <form onSubmit={handleSubmitSkill} className="space-y-4">
+            <FormInput
+              label="Skill/Certificate Title"
+              placeholder="e.g., Python Programming, AWS Cloud Practitioner"
+              value={newSkill.title}
+              onChange={(e) => setNewSkill({ ...newSkill, title: e.target.value })}
+              required
+            />
+            <FormInput
+              label="Provider (Optional)"
+              placeholder="e.g., Coursera, Udemy, Google"
+              value={newSkill.provider}
+              onChange={(e) => setNewSkill({ ...newSkill, provider: e.target.value })}
+            />
+            <FormInput
+              label="Certificate URL (Optional)"
+              placeholder="Link to certificate or proof"
+              value={newSkill.certificateUrl}
+              onChange={(e) => setNewSkill({ ...newSkill, certificateUrl: e.target.value })}
+            />
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowAddModal(false)
+                  setNewSkill({ title: '', provider: '', certificateUrl: '' })
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                loading={submitting}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Submit for Verification
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </motion.div>
     </MainLayout>
   )
