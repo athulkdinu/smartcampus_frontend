@@ -6,21 +6,89 @@ import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
 import { MessageSquare, Send, Inbox, Mail, Clock, User } from 'lucide-react'
+import { getAllUsersAPI } from '../../services/api'
+import { sendMessageAPI, getInboxAPI, getSentAPI } from '../../services/communicationAPI'
 
 const HRCommunication = () => {
   const [activeTab, setActiveTab] = useState('inbox')
   const [inbox, setInbox] = useState([])
   const [sent, setSent] = useState([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
+  const [adminUsers, setAdminUsers] = useState([])
   
   const [message, setMessage] = useState({
+    adminId: '',
     subject: '',
     message: ''
   })
 
   useEffect(() => {
-    // TODO: Load messages from API GET /messages
-    // loadMessages()
+    loadAdminUsers()
+    loadMessages()
   }, [])
+
+  useEffect(() => {
+    if (activeTab === 'inbox') {
+      loadInbox()
+    } else if (activeTab === 'sent') {
+      loadSent()
+    }
+  }, [activeTab])
+
+  const loadAdminUsers = async () => {
+    try {
+      const res = await getAllUsersAPI()
+      if (res?.status === 200) {
+        const admins = (res.data.users || []).filter(user => user.role === 'admin')
+        setAdminUsers(admins)
+        // Auto-select first admin if available
+        if (admins.length > 0 && !message.adminId) {
+          setMessage(prev => ({ ...prev, adminId: admins[0].id }))
+        }
+      }
+    } catch (error) {
+      console.error('Error loading admin users:', error)
+    }
+  }
+
+  const loadMessages = () => {
+    loadInbox()
+    loadSent()
+  }
+
+  const loadInbox = async () => {
+    try {
+      setLoadingMessages(true)
+      const res = await getInboxAPI()
+      if (res?.status === 200) {
+        setInbox(res.data.messages || [])
+      } else {
+        toast.error('Failed to load inbox')
+      }
+    } catch (error) {
+      console.error('Error loading inbox:', error)
+      toast.error('Failed to load inbox')
+    } finally {
+      setLoadingMessages(false)
+    }
+  }
+
+  const loadSent = async () => {
+    try {
+      setLoadingMessages(true)
+      const res = await getSentAPI()
+      if (res?.status === 200) {
+        setSent(res.data.messages || [])
+      } else {
+        toast.error('Failed to load sent messages')
+      }
+    } catch (error) {
+      console.error('Error loading sent messages:', error)
+      toast.error('Failed to load sent messages')
+    } finally {
+      setLoadingMessages(false)
+    }
+  }
 
   const handleSendMessage = async (e) => {
     e.preventDefault()
@@ -28,10 +96,35 @@ const HRCommunication = () => {
       toast.error('Please enter a message')
       return
     }
+    if (!message.subject.trim()) {
+      toast.error('Please enter a subject')
+      return
+    }
+    if (!message.adminId) {
+      toast.error('Please select an admin')
+      return
+    }
     
-    // TODO: Call API POST /messages/send with recipient as Admin
-    toast.success('Message sent to Admin')
-    setMessage({ subject: '', message: '' })
+    try {
+      const payload = {
+        subject: message.subject,
+        body: message.message,
+        mode: 'user',
+        targetUserId: message.adminId
+      }
+
+      const res = await sendMessageAPI(payload)
+      if (res?.status === 201) {
+        toast.success('Message sent to Admin successfully')
+        setMessage({ adminId: adminUsers[0]?.id || '', subject: '', message: '' })
+        loadSent()
+      } else {
+        toast.error(res?.response?.data?.message || 'Failed to send message')
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      toast.error(error?.response?.data?.message || 'Failed to send message')
+    }
   }
 
   return (
@@ -56,9 +149,18 @@ const HRCommunication = () => {
             <Card className="border border-slate-100 bg-white/80 backdrop-blur">
               <h2 className="text-xl font-bold text-slate-900 mb-4">Send Message to Admin</h2>
               <form onSubmit={handleSendMessage} className="space-y-4">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <p className="text-xs text-slate-500 mb-1">Recipient</p>
-                  <p className="text-sm font-semibold text-slate-900">Admin</p>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Admin</label>
+                  <select
+                    value={message.adminId}
+                    onChange={(e) => setMessage({ ...message, adminId: e.target.value })}
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+                  >
+                    <option value="">Select an admin</option>
+                    {adminUsers.map(admin => (
+                      <option key={admin.id} value={admin.id}>{admin.name} ({admin.email})</option>
+                    ))}
+                  </select>
                 </div>
 
                 <FormInput

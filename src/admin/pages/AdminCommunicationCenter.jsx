@@ -6,7 +6,9 @@ import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
 import { MessageSquare, Send, Inbox, Mail, Clock, User } from 'lucide-react'
-import { getAllClassesAPI } from '../../services/classAPI'
+import { getAllClassesAPI, getClassStudentsAPI } from '../../services/classAPI'
+import { getAllUsersAPI } from '../../services/api'
+import { sendMessageAPI, getInboxAPI, getSentAPI } from '../../services/communicationAPI'
 
 const broadcastTargets = [
   { value: 'all-students', label: 'All Students' },
@@ -28,6 +30,8 @@ const AdminCommunicationCenter = () => {
   const [students, setStudents] = useState([])
   const [inbox, setInbox] = useState([])
   const [sent, setSent] = useState([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
+  const [allUsers, setAllUsers] = useState([])
   
   const [broadcast, setBroadcast] = useState({ 
     audience: 'all-students', 
@@ -46,9 +50,17 @@ const AdminCommunicationCenter = () => {
 
   useEffect(() => {
     loadClasses()
-    // TODO: Load messages from API
-    // loadMessages()
+    loadUsers()
+    loadMessages()
   }, [])
+
+  useEffect(() => {
+    if (activeTab === 'inbox') {
+      loadInbox()
+    } else if (activeTab === 'sent') {
+      loadSent()
+    }
+  }, [activeTab])
 
   useEffect(() => {
     if (directMessage.role === 'student' && directMessage.classId) {
@@ -72,40 +84,146 @@ const AdminCommunicationCenter = () => {
     }
   }
 
+  const loadUsers = async () => {
+    try {
+      const res = await getAllUsersAPI()
+      if (res?.status === 200) {
+        setAllUsers(res.data.users || [])
+      }
+    } catch (error) {
+      console.error('Error loading users:', error)
+    }
+  }
+
   const loadStudentsForClass = async (classId) => {
     try {
-      // TODO: Implement API call to fetch students for a class
-      // For now, placeholder
-      setStudents([])
+      const res = await getClassStudentsAPI(classId)
+      if (res?.status === 200) {
+        setStudents(res.data.students || [])
+      }
     } catch (error) {
       console.error('Error loading students:', error)
+      setStudents([])
+    }
+  }
+
+  const loadMessages = () => {
+    loadInbox()
+    loadSent()
+  }
+
+  const loadInbox = async () => {
+    try {
+      setLoadingMessages(true)
+      const res = await getInboxAPI()
+      if (res?.status === 200) {
+        setInbox(res.data.messages || [])
+      } else {
+        toast.error('Failed to load inbox')
+      }
+    } catch (error) {
+      console.error('Error loading inbox:', error)
+      toast.error('Failed to load inbox')
+    } finally {
+      setLoadingMessages(false)
+    }
+  }
+
+  const loadSent = async () => {
+    try {
+      setLoadingMessages(true)
+      const res = await getSentAPI()
+      if (res?.status === 200) {
+        setSent(res.data.messages || [])
+      } else {
+        toast.error('Failed to load sent messages')
+      }
+    } catch (error) {
+      console.error('Error loading sent messages:', error)
+      toast.error('Failed to load sent messages')
+    } finally {
+      setLoadingMessages(false)
     }
   }
 
   const sendBroadcast = async (e) => {
     e.preventDefault()
     if (!broadcast.message.trim()) return toast.error('Enter a broadcast message')
-    if (broadcast.audience === 'specific-class' && !broadcast.classId) {
-      return toast.error('Please select a class')
-    }
+    if (!broadcast.subject.trim()) return toast.error('Enter a subject')
     
-    // TODO: Call API POST /messages/send
-    toast.success('Broadcast sent')
-    setBroadcast({ audience: 'all-students', classId: '', subject: '', message: '' })
+    try {
+      let payload = {
+        subject: broadcast.subject,
+        body: broadcast.message,
+      }
+
+      if (broadcast.audience === 'specific-class') {
+        if (!broadcast.classId) {
+          return toast.error('Please select a class')
+        }
+        payload.mode = 'class'
+        payload.targetClassId = broadcast.classId
+      } else {
+        payload.mode = 'role'
+        const roleMap = {
+          'all-students': 'student',
+          'all-faculty': 'faculty',
+          'all-hr': 'hr'
+        }
+        payload.targetRole = roleMap[broadcast.audience]
+      }
+
+      const res = await sendMessageAPI(payload)
+      if (res?.status === 201) {
+        toast.success('Broadcast sent successfully')
+        setBroadcast({ audience: 'all-students', classId: '', subject: '', message: '' })
+        loadSent()
+      } else {
+        toast.error(res?.response?.data?.message || 'Failed to send broadcast')
+      }
+    } catch (error) {
+      console.error('Error sending broadcast:', error)
+      toast.error(error?.response?.data?.message || 'Failed to send broadcast')
+    }
   }
 
   const sendDirectMessage = async (e) => {
     e.preventDefault()
     if (!directMessage.role) return toast.error('Please select a role')
     if (!directMessage.message.trim()) return toast.error('Enter a message')
-    if (directMessage.role === 'student') {
-      if (!directMessage.classId) return toast.error('Please select a class')
-      if (!directMessage.studentId) return toast.error('Please select a student')
-    }
+    if (!directMessage.subject.trim()) return toast.error('Enter a subject')
     
-    // TODO: Call API POST /messages/send
-    toast.success('Direct message sent')
-    setDirectMessage({ role: '', classId: '', studentId: '', subject: '', message: '' })
+    try {
+      let payload = {
+        subject: directMessage.subject,
+        body: directMessage.message,
+        mode: 'user',
+      }
+
+      if (directMessage.role === 'student') {
+        if (!directMessage.classId) return toast.error('Please select a class')
+        if (!directMessage.studentId) return toast.error('Please select a student')
+        payload.targetUserId = directMessage.studentId
+      } else {
+        // For faculty or HR, need to select a user
+        if (!directMessage.studentId) {
+          return toast.error('Please select a user')
+        }
+        payload.targetUserId = directMessage.studentId
+      }
+
+      const res = await sendMessageAPI(payload)
+      if (res?.status === 201) {
+        toast.success('Direct message sent successfully')
+        setDirectMessage({ role: '', classId: '', studentId: '', subject: '', message: '' })
+        loadSent()
+      } else {
+        toast.error(res?.response?.data?.message || 'Failed to send message')
+      }
+    } catch (error) {
+      console.error('Error sending direct message:', error)
+      toast.error(error?.response?.data?.message || 'Failed to send message')
+    }
   }
 
   return (
@@ -235,6 +353,26 @@ const AdminCommunicationCenter = () => {
                   </>
                 )}
 
+                {(directMessage.role === 'faculty' || directMessage.role === 'hr') && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Select {directMessage.role === 'faculty' ? 'Faculty' : 'HR'}
+                    </label>
+                    <select
+                      value={directMessage.studentId}
+                      onChange={(e) => setDirectMessage({ ...directMessage, studentId: e.target.value })}
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+                    >
+                      <option value="">Select a {directMessage.role}</option>
+                      {allUsers
+                        .filter(user => user.role === directMessage.role)
+                        .map(user => (
+                          <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
+                        ))}
+                    </select>
+                  </div>
+                )}
+
                 <FormInput
                   label="Subject"
                   placeholder="Message subject"
@@ -310,7 +448,7 @@ const AdminCommunicationCenter = () => {
                           </div>
                           <span className="text-xs text-slate-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {message.timestamp}
+                            {new Date(message.timestamp).toLocaleString()}
                           </span>
                         </div>
                         {message.subject && (
@@ -341,7 +479,7 @@ const AdminCommunicationCenter = () => {
                           </div>
                           <span className="text-xs text-slate-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {message.timestamp}
+                            {new Date(message.timestamp).toLocaleString()}
                           </span>
                         </div>
                         {message.subject && (

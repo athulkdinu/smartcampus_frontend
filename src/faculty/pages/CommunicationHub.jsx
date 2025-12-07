@@ -7,6 +7,10 @@ import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
 import { MessageSquare, Send, Inbox, Mail, Clock, User } from 'lucide-react'
 import { getActiveFacultyProfile } from '../utils/getActiveFaculty'
+import { getFacultyClassesAPI } from '../../services/attendanceAPI'
+import { getClassStudentsAPI } from '../../services/classAPI'
+import { getAllUsersAPI } from '../../services/api'
+import { sendMessageAPI, getInboxAPI, getSentAPI } from '../../services/communicationAPI'
 
 const CommunicationHub = () => {
   const selectedFaculty = useMemo(() => getActiveFacultyProfile(), [])
@@ -15,6 +19,8 @@ const CommunicationHub = () => {
   const [students, setStudents] = useState([])
   const [inbox, setInbox] = useState([])
   const [sent, setSent] = useState([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
+  const [adminUsers, setAdminUsers] = useState([])
   
   const [message, setMessage] = useState({
     recipientType: 'class', // 'class', 'student', 'admin'
@@ -26,16 +32,18 @@ const CommunicationHub = () => {
   })
 
   useEffect(() => {
-    // Load assigned classes for faculty
-    // TODO: Fetch from API based on selectedFaculty
-    if (selectedFaculty?.sections) {
-      setClasses(selectedFaculty.sections.map(section => ({
-        _id: section.name,
-        className: section.name,
-        students: section.students || 0
-      })))
+    loadFacultyClasses()
+    loadAdminUsers()
+    loadMessages()
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'inbox') {
+      loadInbox()
+    } else if (activeTab === 'sent') {
+      loadSent()
     }
-  }, [selectedFaculty])
+  }, [activeTab])
 
   useEffect(() => {
     if (message.recipientType === 'class' && message.classId && message.recipientTypeOption === 'one') {
@@ -45,12 +53,77 @@ const CommunicationHub = () => {
     }
   }, [message.classId, message.recipientTypeOption, message.recipientType])
 
+  const loadFacultyClasses = async () => {
+    try {
+      const res = await getFacultyClassesAPI()
+      if (res?.status === 200) {
+        setClasses(res.data.classes || [])
+      }
+    } catch (error) {
+      console.error('Error loading faculty classes:', error)
+    }
+  }
+
+  const loadAdminUsers = async () => {
+    try {
+      const res = await getAllUsersAPI()
+      if (res?.status === 200) {
+        const admins = (res.data.users || []).filter(user => user.role === 'admin')
+        setAdminUsers(admins)
+      }
+    } catch (error) {
+      console.error('Error loading admin users:', error)
+    }
+  }
+
   const loadStudentsForClass = async (classId) => {
     try {
-      // TODO: Implement API call to fetch students for a class
-      setStudents([])
+      const res = await getClassStudentsAPI(classId)
+      if (res?.status === 200) {
+        setStudents(res.data.students || [])
+      }
     } catch (error) {
       console.error('Error loading students:', error)
+      setStudents([])
+    }
+  }
+
+  const loadMessages = () => {
+    loadInbox()
+    loadSent()
+  }
+
+  const loadInbox = async () => {
+    try {
+      setLoadingMessages(true)
+      const res = await getInboxAPI()
+      if (res?.status === 200) {
+        setInbox(res.data.messages || [])
+      } else {
+        toast.error('Failed to load inbox')
+      }
+    } catch (error) {
+      console.error('Error loading inbox:', error)
+      toast.error('Failed to load inbox')
+    } finally {
+      setLoadingMessages(false)
+    }
+  }
+
+  const loadSent = async () => {
+    try {
+      setLoadingMessages(true)
+      const res = await getSentAPI()
+      if (res?.status === 200) {
+        setSent(res.data.messages || [])
+      } else {
+        toast.error('Failed to load sent messages')
+      }
+    } catch (error) {
+      console.error('Error loading sent messages:', error)
+      toast.error('Failed to load sent messages')
+    } finally {
+      setLoadingMessages(false)
     }
   }
 
@@ -60,28 +133,61 @@ const CommunicationHub = () => {
       toast.error('Please enter a message')
       return
     }
-    
-    if (message.recipientType === 'class') {
-      if (!message.classId) {
-        toast.error('Please select a class')
-        return
-      }
-      if (message.recipientTypeOption === 'one' && !message.studentId) {
-        toast.error('Please select a student')
-        return
-      }
+    if (!message.subject.trim()) {
+      toast.error('Please enter a subject')
+      return
     }
+    
+    try {
+      let payload = {
+        subject: message.subject,
+        body: message.message,
+      }
 
-    // TODO: Call API POST /messages/send
-    toast.success('Message sent')
-    setMessage({
-      recipientType: 'class',
-      classId: '',
-      studentId: '',
-      recipientTypeOption: 'all',
-      subject: '',
-      message: ''
-    })
+      if (message.recipientType === 'class') {
+        if (!message.classId) {
+          toast.error('Please select a class')
+          return
+        }
+        if (message.recipientTypeOption === 'all') {
+          payload.mode = 'class'
+          payload.targetClassId = message.classId
+        } else {
+          if (!message.studentId) {
+            toast.error('Please select a student')
+            return
+          }
+          payload.mode = 'user'
+          payload.targetUserId = message.studentId
+        }
+      } else if (message.recipientType === 'admin') {
+        if (!message.studentId) {
+          toast.error('Please select an admin')
+          return
+        }
+        payload.mode = 'user'
+        payload.targetUserId = message.studentId
+      }
+
+      const res = await sendMessageAPI(payload)
+      if (res?.status === 201) {
+        toast.success('Message sent successfully')
+        setMessage({
+          recipientType: 'class',
+          classId: '',
+          studentId: '',
+          recipientTypeOption: 'all',
+          subject: '',
+          message: ''
+        })
+        loadSent()
+      } else {
+        toast.error(res?.response?.data?.message || 'Failed to send message')
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      toast.error(error?.response?.data?.message || 'Failed to send message')
+    }
   }
 
   return (
@@ -112,6 +218,22 @@ const CommunicationHub = () => {
                     <option value="admin">Admin</option>
                   </select>
                 </div>
+
+                {message.recipientType === 'admin' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Admin</label>
+                    <select
+                      value={message.studentId}
+                      onChange={(e) => setMessage({ ...message, studentId: e.target.value })}
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                    >
+                      <option value="">Select an admin</option>
+                      {adminUsers.map(admin => (
+                        <option key={admin.id} value={admin.id}>{admin.name} ({admin.email})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {message.recipientType === 'class' && (
                   <>

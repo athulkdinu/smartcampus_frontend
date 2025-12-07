@@ -14,18 +14,31 @@ import {
   exams,
   leaveRequests,
   complaints,
-  communications
 } from '../data/academicData'
+import { getInboxAPI } from '../../services/communicationAPI'
 import { getStudentLecturesAPI } from '../../services/lectureAPI'
 
 const AcademicCampus = () => {
   const navigate = useNavigate()
   const [lectureMaterials, setLectureMaterials] = useState([])
   const [loadingLectures, setLoadingLectures] = useState(true)
+  const [communications, setCommunications] = useState([])
 
   useEffect(() => {
     loadLectureMaterials()
+    loadMessages()
   }, [])
+
+  const loadMessages = async () => {
+    try {
+      const res = await getInboxAPI()
+      if (res?.status === 200) {
+        setCommunications((res.data.messages || []).slice(0, 3))
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error)
+    }
+  }
 
   const loadLectureMaterials = async () => {
     try {
@@ -159,18 +172,29 @@ const AcademicCampus = () => {
             </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {communications.slice(0, 3).map((message) => (
-              <div key={message.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-2 hover:bg-white transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{message.sender}</p>
-                    <p className="text-xs text-slate-500">{message.role}</p>
+            {communications.length > 0 ? (
+              communications.map((message) => (
+                <div key={message.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-2 hover:bg-white transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{message.from}</p>
+                      <p className="text-xs text-slate-500">{message.role}</p>
+                    </div>
+                    <span className="text-[11px] text-slate-400">
+                      {message.timestamp ? new Date(message.timestamp).toLocaleDateString() : ''}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-slate-400">{message.time}</span>
+                  {message.subject && (
+                    <p className="text-xs font-medium text-slate-700 mb-1">{message.subject}</p>
+                  )}
+                  <p className="text-sm text-slate-600 line-clamp-3">{message.preview || message.body || message.message}</p>
                 </div>
-                <p className="text-sm text-slate-600 line-clamp-3">{message.message}</p>
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-4 text-slate-400 text-sm">
+                No messages
               </div>
-            ))}
+            )}
           </div>
         </Card>
 

@@ -3,17 +3,33 @@ import { motion } from 'framer-motion'
 import MainLayout from '../../../shared/layouts/MainLayout'
 import Card from '../../../shared/components/Card'
 import { MessageSquare, Clock, User, Bell } from 'lucide-react'
+import { getInboxAPI } from '../../../services/communicationAPI'
+import toast from 'react-hot-toast'
 
 const MessagesPage = () => {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // TODO: Fetch messages from API GET /messages
-    // For now, empty array
-    setMessages([])
-    setLoading(false)
+    loadMessages()
   }, [])
+
+  const loadMessages = async () => {
+    try {
+      setLoading(true)
+      const res = await getInboxAPI()
+      if (res?.status === 200) {
+        setMessages(res.data.messages || [])
+      } else {
+        toast.error('Failed to load messages')
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error)
+      toast.error('Failed to load messages')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <MainLayout>
@@ -72,7 +88,7 @@ const MessagesPage = () => {
                         </div>
                         <span className="text-xs text-slate-400 flex items-center gap-1 flex-shrink-0 ml-2">
                           <Clock className="w-3 h-3" />
-                          {message.timestamp}
+                          {message.timestamp ? new Date(message.timestamp).toLocaleString() : 'N/A'}
                         </span>
                       </div>
                       {message.subject && (
