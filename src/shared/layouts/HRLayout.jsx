@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   CalendarCheck,
   Trophy,
-  Briefcase
+  Briefcase,
+  MessageSquare
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -38,7 +39,8 @@ const HRLayout = ({ children }) => {
     { icon: Users, label: 'Applications', path: '/hr/applications' },
     { icon: CheckCircle2, label: 'Shortlisted', path: '/hr/shortlisted' },
     { icon: CalendarCheck, label: 'Interview Schedule', path: '/hr/interviews' },
-    { icon: Trophy, label: 'Results', path: '/hr/results' }
+    { icon: Trophy, label: 'Results', path: '/hr/results' },
+    { icon: MessageSquare, label: 'Communication', path: '/hr/communication' }
   ]
 
   const isActive = (path) => {

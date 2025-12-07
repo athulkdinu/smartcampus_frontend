@@ -33,6 +33,7 @@ import HRViewApplications from './hr/pages/HRViewApplications'
 import HRShortlisted from './hr/pages/HRShortlisted'
 import HRInterviewSchedule from './hr/pages/HRInterviewSchedule'
 import HRResults from './hr/pages/HRResults'
+import HRCommunication from './hr/pages/HRCommunication'
 import FacultyDashboard from './faculty/pages/FacultyDashboard'
 import AcademicManagement from './faculty/pages/AcademicManagement'
 import FacultyStudents from './faculty/pages/FacultyStudents'
@@ -177,6 +178,7 @@ function App() {
         <Route path="/hr/shortlisted" element={<HRShortlisted />} />
         <Route path="/hr/interviews" element={<HRInterviewSchedule />} />
         <Route path="/hr/results" element={<HRResults />} />
+        <Route path="/hr/communication" element={<HRCommunication />} />
       </Routes>
     </Router>
   )
