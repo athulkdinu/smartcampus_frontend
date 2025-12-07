@@ -9,7 +9,7 @@ import { MessageSquare, Send, Inbox, Mail, Clock, User } from 'lucide-react'
 import { getActiveFacultyProfile } from '../utils/getActiveFaculty'
 import { getFacultyClassesAPI } from '../../services/attendanceAPI'
 import { getClassStudentsAPI } from '../../services/classAPI'
-import { getAllUsersAPI } from '../../services/api'
+import { getAdminUsersAPI } from '../../services/api'
 import { sendMessageAPI, getInboxAPI, getSentAPI } from '../../services/communicationAPI'
 
 const CommunicationHub = () => {
@@ -66,10 +66,9 @@ const CommunicationHub = () => {
 
   const loadAdminUsers = async () => {
     try {
-      const res = await getAllUsersAPI()
+      const res = await getAdminUsersAPI()
       if (res?.status === 200) {
-        const admins = (res.data.users || []).filter(user => user.role === 'admin')
-        setAdminUsers(admins)
+        setAdminUsers(res.data.admins || [])
       }
     } catch (error) {
       console.error('Error loading admin users:', error)

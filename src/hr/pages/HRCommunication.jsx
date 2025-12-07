@@ -6,7 +6,7 @@ import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
 import { MessageSquare, Send, Inbox, Mail, Clock, User } from 'lucide-react'
-import { getAllUsersAPI } from '../../services/api'
+import { getAdminUsersAPI } from '../../services/api'
 import { sendMessageAPI, getInboxAPI, getSentAPI } from '../../services/communicationAPI'
 
 const HRCommunication = () => {
@@ -37,9 +37,9 @@ const HRCommunication = () => {
 
   const loadAdminUsers = async () => {
     try {
-      const res = await getAllUsersAPI()
+      const res = await getAdminUsersAPI()
       if (res?.status === 200) {
-        const admins = (res.data.users || []).filter(user => user.role === 'admin')
+        const admins = res.data.admins || []
         setAdminUsers(admins)
         // Auto-select first admin if available
         if (admins.length > 0 && !message.adminId) {

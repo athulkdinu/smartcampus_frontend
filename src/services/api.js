@@ -22,6 +22,11 @@ export const getAllFacultyAPI = () => {
   return api.get("/api/admin/faculty-list");
 };
 
+// GET /api/admin/admins - Get admin users (accessible by faculty and hr)
+export const getAdminUsersAPI = () => {
+  return api.get("/api/admin/admins");
+};
+
 export const createEventAPI = (data) => {
   return api.post("/api/events", data);
 };
