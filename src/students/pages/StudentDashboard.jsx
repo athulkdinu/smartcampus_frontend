@@ -153,21 +153,6 @@ const StudentDashboard = () => {
     upcomingExams: 2
   }
 
-  const subjectPerformance = [
-    { subject: 'DS', score: 92 },
-    { subject: 'Web Dev', score: 88 },
-    { subject: 'DBMS', score: 85 },
-    { subject: 'OS', score: 90 },
-    { subject: 'CN', score: 87 }
-  ]
-
-  const progressData = [
-    { name: 'Completed', value: 65, color: '#3b82f6' },
-    { name: 'In Progress', value: 25, color: '#8b5cf6' },
-    { name: 'Pending', value: 10, color: '#e2e8f0' }
-  ]
-
-
   const recentActivities = [
     { type: 'assignment', title: 'Submitted: Web Development Project', time: '2 hours ago', icon: CheckCircle2, color: 'text-green-600' },
     { type: 'notice', title: 'New Notice: Library Hours Extended', time: '5 hours ago', icon: AlertCircle, color: 'text-blue-600' },
@@ -221,10 +206,10 @@ const StudentDashboard = () => {
   ]
 
   const quickActions = [
-    { title: 'Academic & Campus', desc: 'Access notices, timetable, lectures', icon: BookOpen, path: '/student/academic', color: 'blue' },
-    { title: 'Skills & Learning', desc: 'Browse skills, training modules', icon: BookOpen, path: '/student/skills', color: 'indigo' },
-    { title: 'Placement & Internship', desc: 'Upload resume, browse jobs', icon: Briefcase, path: '/student/placement', color: 'purple' },
-    { title: 'Events & Activities', desc: 'Fests, workshops, placements', icon: Calendar, path: '/student/academic/events', color: 'purple' }
+    { title: 'Academic & Campus', desc: 'Access notices, timetable, lectures', icon: BookOpen, path: '/student/academic', color: 'blue', bgColor: 'bg-blue-50', borderColor: 'border-blue-100', textColor: 'text-blue-600' },
+    { title: 'Skills & Learning', desc: 'Browse skills, training modules', icon: BookOpen, path: '/student/skills', color: 'indigo', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-100', textColor: 'text-indigo-600' },
+    { title: 'Placement & Internship', desc: 'Upload resume, browse jobs', icon: Briefcase, path: '/student/placement', color: 'purple', bgColor: 'bg-purple-50', borderColor: 'border-purple-100', textColor: 'text-purple-600' },
+    { title: 'Events & Activities', desc: 'Fests, workshops, placements', icon: Calendar, path: '/student/academic/events', color: 'purple', bgColor: 'bg-purple-50', borderColor: 'border-purple-100', textColor: 'text-purple-600' }
   ]
 
   return (
@@ -232,23 +217,20 @@ const StudentDashboard = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
+        className="space-y-8 p-4 md:p-6"
       >
         {/* Welcome Section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              Welcome back, Student! 👋
-            </h1>
-            <p className="text-slate-600">
-              Here's what's happening with your academics today
-            </p>
-          </div>
-          
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-slate-900 mb-3">
+            Welcome back! 👋
+          </h1>
+          <p className="text-lg text-slate-600">
+            Here's what's happening with your academics today
+          </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Stats Grid - Main Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {statCards.map((stat, idx) => {
             const Icon = stat.icon
             return (
@@ -261,22 +243,21 @@ const StudentDashboard = () => {
               >
                 <Card
                   onClick={stat.onClick}
-                  className="relative overflow-hidden group cursor-pointer"
+                  className="relative overflow-hidden group cursor-pointer p-6 hover:shadow-lg transition-shadow"
                 >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br opacity-10 group-hover:opacity-20 transition-opacity rounded-full -mr-16 -mt-16"></div>
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`w-14 h-14 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}>
-                        <Icon className="w-7 h-7 text-white" />
-                      </div>
-                      <div className="text-right">
-                        <div className="text-3xl font-bold text-slate-900">{stat.value}</div>
-                        <div className="text-xs text-green-600 font-semibold flex items-center justify-end gap-1">
-                          <TrendingUp className="w-3 h-3" />
-                          {stat.trend}
-                        </div>
+                  <div className="flex items-center justify-between">
+                    <div className={`w-16 h-16 bg-gradient-to-br ${stat.color} rounded-2xl flex items-center justify-center shadow-md`}>
+                      <Icon className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-slate-900 mb-1">{stat.value}</div>
+                      <div className="text-xs text-green-600 font-semibold flex items-center justify-end gap-1">
+                        <TrendingUp className="w-3 h-3" />
+                        {stat.trend}
                       </div>
                     </div>
+                  </div>
+                  <div className="mt-4">
                     <div className="text-sm font-semibold text-slate-700">{stat.label}</div>
                     <div className="text-xs text-slate-500 mt-1">View Details →</div>
                   </div>
@@ -286,89 +267,43 @@ const StudentDashboard = () => {
           })}
         </div>
 
-        {/* Additional Stats */}
-        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Assignments Pending', value: stats.assignmentsPending, color: 'text-orange-600', bgColor: 'bg-orange-50' },
-            { label: 'Upcoming Exams', value: stats.upcomingExams, color: 'text-red-600', bgColor: 'bg-red-50' },
-            { label: 'Certificates', value: 8, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-            { label: 'upcoming Events', value: '3', color: 'text-indigo-600', bgColor: 'bg-indigo-50' }
-          ].map((stat, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 + idx * 0.1 }}
-            >
-              <Card className={`${stat.bgColor} border-0`}>
-                <div className="text-xs font-medium text-slate-600 mb-1">{stat.label}</div>
-                <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-              </Card>
-            </motion.div>
-          ))}
-        </div> */}
-
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - 2/3 */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             {/* Quick Actions */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {quickActions.map((action, idx) => {
-                  const Icon = action.icon
-                  return (
-                    <motion.div
-                      key={idx}
-                      whileHover={{ y: -4 }}
-                    >
-                      <Card
-                        onClick={() => navigate(action.path)}
-                        className="cursor-pointer group"
+              <Card className="p-6">
+                <h3 className="text-xl font-bold text-slate-900 mb-6">Quick Actions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {quickActions.map((action, idx) => {
+                    const Icon = action.icon
+                    return (
+                      <motion.div
+                        key={idx}
+                        whileHover={{ y: -4 }}
                       >
-                        <div className={`w-14 h-14 bg-${action.color}-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border-2 border-${action.color}-100`}>
-                          <Icon className={`w-7 h-7 text-${action.color}-600`} />
-                        </div>
-                        <h3 className="text-lg font-bold text-slate-900 mb-2">{action.title}</h3>
-                        <p className="text-slate-600 text-sm mb-4">{action.desc}</p>
-                        <div className={`flex items-center text-${action.color}-600 text-sm font-semibold`}>
-                          Explore <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                        </div>
-                      </Card>
-                    </motion.div>
-                  )
-                })}
-              </div>
-            </motion.div>
-
-            {/* Subject Performance */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Card>
-                <h3 className="text-xl font-bold text-slate-900 mb-6">Subject Performance</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={subjectPerformance}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="subject" stroke="#64748b" />
-                    <YAxis stroke="#64748b" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '12px',
-                        padding: '12px'
-                      }}
-                    />
-                    <Bar dataKey="score" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                        <Card
+                          onClick={() => navigate(action.path)}
+                          className="cursor-pointer group p-6 hover:shadow-lg transition-all"
+                        >
+                          <div className={`w-16 h-16 ${action.bgColor} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border-2 ${action.borderColor}`}>
+                            <Icon className={`w-8 h-8 ${action.textColor}`} />
+                          </div>
+                          <h3 className="text-lg font-bold text-slate-900 mb-2">{action.title}</h3>
+                          <p className="text-slate-600 text-sm mb-4">{action.desc}</p>
+                          <div className={`flex items-center ${action.textColor} text-sm font-semibold`}>
+                            Explore <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </Card>
+                      </motion.div>
+                    )
+                  })}
+                </div>
               </Card>
             </motion.div>
 
@@ -376,23 +311,23 @@ const StudentDashboard = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.4 }}
             >
-              <Card>
+              <Card className="p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-slate-900">Upcoming Deadlines</h3>
                   <Button variant="ghost" size="sm" onClick={() => navigate('/student/academic/assignments')}>
                     View All →
                   </Button>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {upcomingDeadlines.map((deadline, idx) => (
                     <motion.div
                       key={idx}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.6 + idx * 0.1 }}
-                      className={`p-4 rounded-xl border-l-4 ${
+                      transition={{ delay: 0.5 + idx * 0.1 }}
+                      className={`p-5 rounded-xl border-l-4 ${
                         deadline.priority === 'high'
                           ? 'border-red-500 bg-red-50'
                           : deadline.priority === 'medium'
@@ -401,11 +336,11 @@ const StudentDashboard = () => {
                       }`}
                     >
                       <div className="flex items-start justify-between">
-                        <div>
-                          <div className="font-semibold text-sm text-slate-900">{deadline.title}</div>
-                          <div className="text-xs text-slate-600 mt-1">{deadline.subject}</div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-base text-slate-900 mb-1">{deadline.title}</div>
+                          <div className="text-sm text-slate-600">{deadline.subject}</div>
                         </div>
-                        <div className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                        <div className={`text-xs font-semibold px-4 py-2 rounded-full ${
                           deadline.priority === 'high'
                             ? 'bg-red-100 text-red-700'
                             : deadline.priority === 'medium'
@@ -423,17 +358,19 @@ const StudentDashboard = () => {
           </div>
 
           {/* Right Column - 1/3 */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Today's Classes */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <Card>
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-blue-600" />
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-blue-600" />
+                    </div>
                     <h3 className="text-lg font-bold text-slate-900">Today's Classes</h3>
                   </div>
                   <Button 
@@ -447,32 +384,32 @@ const StudentDashboard = () => {
                       }
                     }}
                   >
-                    View Timetable
+                    View All
                   </Button>
                 </div>
                 {loadingClasses ? (
-                  <div className="text-sm text-slate-500 py-4">Loading classes...</div>
+                  <div className="text-sm text-slate-500 py-8 text-center">Loading classes...</div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {todayClasses.slice(0, 3).map((classItem, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.4 + idx * 0.1 }}
-                      className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <div className="font-semibold text-sm text-slate-900">{classItem.subject}</div>
-                        <div className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-lg">
-                          {classItem.time}
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + idx * 0.1 }}
+                        className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-semibold text-base text-slate-900">{classItem.subject}</div>
+                          <div className="text-xs font-medium text-blue-600 bg-blue-100 px-3 py-1 rounded-lg">
+                            {classItem.time}
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-xs text-slate-600">{classItem.room} • {classItem.instructor}</div>
-                    </motion.div>
+                        <div className="text-sm text-slate-600">{classItem.room} • {classItem.instructor}</div>
+                      </motion.div>
                     ))}
                     {todayClasses.length === 0 && (
-                      <div className="text-sm text-slate-500 py-4 text-center">
+                      <div className="text-sm text-slate-500 py-8 text-center">
                         No classes scheduled for today
                       </div>
                     )}
@@ -480,7 +417,7 @@ const StudentDashboard = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full text-xs"
+                        className="w-full"
                         onClick={() => {
                           setSelectedDay('Monday')
                           setShowTimetableModal(true)
@@ -497,33 +434,50 @@ const StudentDashboard = () => {
               </Card>
             </motion.div>
 
-            {/* Progress Overview */}
+            {/* Attendance Summary */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <Card>
-                <h3 className="text-lg font-bold text-slate-900 mb-6">Progress Overview</h3>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={progressData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900">Attendance Summary</h3>
+                </div>
+                {loadingAttendance ? (
+                  <div className="text-sm text-slate-500 py-8 text-center">Loading...</div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                      <div className="text-4xl font-bold text-slate-900 mb-2">{attendanceSummary.percentage}%</div>
+                      <div className="text-sm text-slate-600">Overall Attendance</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center p-3 bg-slate-50 rounded-lg">
+                        <div className="text-lg font-bold text-slate-900">{attendanceSummary.presentCount}</div>
+                        <div className="text-xs text-slate-600">Present</div>
+                      </div>
+                      <div className="text-center p-3 bg-slate-50 rounded-lg">
+                        <div className="text-lg font-bold text-slate-900">{attendanceSummary.absentCount}</div>
+                        <div className="text-xs text-slate-600">Absent</div>
+                      </div>
+                      <div className="text-center p-3 bg-slate-50 rounded-lg">
+                        <div className="text-lg font-bold text-slate-900">{attendanceSummary.lateCount}</div>
+                        <div className="text-xs text-slate-600">Late</div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="primary"
+                      className="w-full"
+                      onClick={() => navigate('/student/academic/attendance')}
                     >
-                      {progressData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                      View Full Report
+                    </Button>
+                  </div>
+                )}
               </Card>
             </motion.div>
 
@@ -533,9 +487,14 @@ const StudentDashboard = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <Card>
-                <h3 className="text-lg font-bold text-slate-900 mb-5">Recent Activities</h3>
-                <div className="space-y-3">
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900">Recent Activities</h3>
+                </div>
+                <div className="space-y-4">
                   {recentActivities.map((activity, idx) => {
                     const Icon = activity.icon
                     return (
@@ -544,7 +503,7 @@ const StudentDashboard = () => {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.6 + idx * 0.1 }}
-                        className="p-3 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200"
+                        className="p-4 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200"
                       >
                         <div className="flex items-start gap-3">
                           <Icon className={`w-5 h-5 ${activity.color} mt-0.5 flex-shrink-0`} />
