@@ -114,84 +114,58 @@ const AcademicCampus = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
+        className="space-y-8 p-4 md:p-6"
       >
-        {/* Hero Section */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white rounded-2xl p-8 md:p-12">
-          <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.25),_transparent_55%)]"></div>
-          <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-              <div className="space-y-4">
-              <p className="text-sm uppercase tracking-[0.4em] text-slate-300">Academic workspace</p>
-                <h1 className="text-3xl sm:text-4xl font-bold">Academic & Campus</h1>
-              <p className="text-slate-200 text-sm sm:text-base max-w-2xl">
-                  A comprehensive information surface that highlights classes, attention areas, notifications and navigation into every academic tool.
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-sm uppercase tracking-wide text-slate-500 mb-2">Academic & Campus</p>
+              <h1 className="text-4xl font-bold text-slate-900 mb-3">Academic & Campus</h1>
+              <p className="text-lg text-slate-600 max-w-2xl">
+                A comprehensive information surface that highlights classes, attention areas, notifications and navigation into every academic tool.
               </p>
-              <div className="flex flex-wrap gap-3">
-                  <Button variant="secondary" onClick={() => navigate('/student/dashboard')}>
-                  Back to dashboard
-                  </Button>
-              </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 w-full lg:w-auto">
-                {quickStats.map((card, idx) => {
-                  const Icon = card.icon
-                  return (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className="bg-white/10 border border-white/15 rounded-xl p-4 backdrop-blur shadow-lg cursor-pointer hover:bg-white/15 transition-colors"
-                      onClick={() => handleNavigate(card.path)}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <Icon className="w-4 h-4 text-white/70" />
-                  <p className="text-xs uppercase tracking-wide text-white/70">{card.title}</p>
-                      </div>
-                      <p className="text-2xl font-bold">{card.metric}</p>
-                  <p className="text-xs text-white/70 mt-1">{card.meta}</p>
-                  <p className="text-[11px] font-semibold text-emerald-200 mt-2">{card.trend}</p>
-                    </motion.div>
-                  )
-                })}
-                </div>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="secondary" onClick={() => navigate('/student/dashboard')}>
+                Back to dashboard
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Messages & Communications */}
-        <Card>
+        <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Mailbox</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Mailbox</p>
               <h2 className="text-xl font-bold text-slate-900">Mentors & Faculty</h2>
             </div>
             <Button variant="ghost" size="sm" onClick={() => handleNavigate('/student/academic/messages')}>
               View all
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {communications.length > 0 ? (
               communications.map((message) => (
-                <div key={message.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-2 hover:bg-white transition-colors">
-                  <div className="flex items-center justify-between mb-2">
+                <div key={message.id} className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-2 hover:bg-white hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{message.from}</p>
                       <p className="text-xs text-slate-500">{message.role}</p>
                     </div>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-xs text-slate-400">
                       {message.timestamp ? new Date(message.timestamp).toLocaleDateString() : ''}
                     </span>
                   </div>
                   {message.subject && (
-                    <p className="text-xs font-medium text-slate-700 mb-1">{message.subject}</p>
+                    <p className="text-sm font-medium text-slate-700 mb-2">{message.subject}</p>
                   )}
                   <p className="text-sm text-slate-600 line-clamp-3">{message.preview || message.body || message.message}</p>
                 </div>
               ))
             ) : (
-              <div className="col-span-3 text-center py-4 text-slate-400 text-sm">
+              <div className="col-span-3 text-center py-8 text-slate-400 text-sm">
                 No messages
               </div>
             )}
@@ -199,8 +173,8 @@ const AcademicCampus = () => {
         </Card>
 
         {/* Lecture Highlights & Announcements */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Learning Resources</p>
@@ -229,27 +203,27 @@ const AcademicCampus = () => {
                   return (
                     <div
                       key={material._id || material.id}
-                      className="rounded-xl border border-slate-100 bg-slate-50 p-4 hover:bg-white hover:shadow-md transition-all cursor-pointer"
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-5 hover:bg-white hover:shadow-md transition-all cursor-pointer"
                       onClick={() => handleNavigate('/student/academic/lectures')}
                     >
-                      <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
                         <span className="font-medium">
                           {material.classId?.className || material.module || 'Lecture Material'}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full border border-slate-200 text-[10px] font-semibold flex items-center gap-1">
+                        <span className="px-2.5 py-1 rounded-full border border-slate-200 text-[10px] font-semibold flex items-center gap-1">
                           {hasVideo && <Video className="w-3 h-3" />}
                           {hasFile && !hasVideo && <FileText className="w-3 h-3" />}
                           {materialType.toUpperCase()}
                         </span>
                       </div>
-                      <p className="text-base font-semibold text-slate-900 mb-1 line-clamp-1">{material.title}</p>
+                      <p className="text-base font-semibold text-slate-900 mb-2 line-clamp-1">{material.title}</p>
                       {material.facultyId?.name && (
-                        <p className="text-xs text-slate-500 mb-2">{material.facultyId.name}</p>
+                        <p className="text-sm text-slate-500 mb-2">{material.facultyId.name}</p>
                       )}
                       {material.module && (
-                        <p className="text-xs text-slate-500 mb-2">{material.module}</p>
+                        <p className="text-sm text-slate-500 mb-2">{material.module}</p>
                       )}
-                      <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                      <div className="flex items-center gap-3 text-xs text-slate-400">
                         <span>{new Date(material.createdAt).toLocaleDateString()}</span>
                         {material.description && (
                           <>
@@ -264,7 +238,7 @@ const AcademicCampus = () => {
               </div>
             )}
           </Card>
-          <Card>
+          <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Campus Updates</p>
@@ -276,14 +250,14 @@ const AcademicCampus = () => {
             </div>
             <div className="space-y-4">
               {noticeHighlights.map((notice) => (
-                <div key={notice.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4 hover:bg-white hover:shadow-md transition-all space-y-2">
+                <div key={notice.id} className="rounded-xl border border-slate-200 bg-slate-50 p-5 hover:bg-white hover:shadow-md transition-all space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-slate-900 mb-1">{notice.title}</p>
                       <p className="text-xs text-slate-500">{notice.date}</p>
                     </div>
                     <span
-                      className={`text-[11px] px-2.5 py-1 rounded-full font-semibold ml-3 ${
+                      className={`text-xs px-3 py-1 rounded-full font-semibold ml-3 ${
                         notice.priority === 'high'
                           ? 'bg-red-50 text-red-600'
                           : notice.priority === 'medium'
@@ -303,35 +277,34 @@ const AcademicCampus = () => {
 
         {/* Service Cards */}
         <div className="space-y-6">
-          <div className="space-y-2">
-            {/* <p className="text-xs uppercase tracking-wide text-slate-500">Workspaces</p> */}
+          <div className="mb-4">
             <h2 className="text-2xl font-bold text-slate-900">Quick Actions</h2>
-            {/* <p className="text-slate-600 max-w-2xl">
-              Access all your academic tools and resources from one centralized location. Each workspace is designed for easy navigation and quick access to essential information.
-            </p> */}
+            <p className="text-slate-600 mt-2">
+              Access all your academic tools and resources from one centralized location.
+            </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {serviceCards.map((card, idx) => {
               const Icon = card.icon
               return (
-              <motion.button
+                <motion.button
                   key={idx}
-                whileHover={{ y: -4 }}
-                onClick={() => handleNavigate(card.path)}
-                  className="text-left p-6 rounded-2xl border border-slate-100 bg-white hover:border-blue-200 hover:shadow-md transition min-h-[180px] flex flex-col justify-between group"
-              >
-                <div className="flex items-center justify-between">
+                  whileHover={{ y: -4 }}
+                  onClick={() => handleNavigate(card.path)}
+                  className="text-left p-6 rounded-2xl border border-slate-200 bg-white hover:border-blue-300 hover:shadow-lg transition-all min-h-[180px] flex flex-col justify-between group"
+                >
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                         <Icon className="w-6 h-6 text-blue-600" />
                       </div>
                       <h4 className="text-lg font-bold text-slate-900">{card.title}</h4>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
-                </div>
-                <p className="text-sm text-slate-500 mt-3 line-clamp-2">{card.description}</p>
-                <p className="text-xs font-semibold text-blue-600 mt-4">{card.stat}</p>
-              </motion.button>
+                    <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                  </div>
+                  <p className="text-sm text-slate-500 mb-4 line-clamp-2">{card.description}</p>
+                  <p className="text-xs font-semibold text-blue-600">{card.stat}</p>
+                </motion.button>
               )
             })}
           </div>
