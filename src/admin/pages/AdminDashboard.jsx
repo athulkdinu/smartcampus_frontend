@@ -1,127 +1,216 @@
-import { useMemo } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import AdminLayout from '../../shared/layouts/AdminLayout'
 import Card from '../../shared/components/Card'
-import { Users, Calendar, MessageSquare } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { userAccounts, recentActivities, campusEvents } from '../data/adminDemoData'
+import Button from '../../shared/components/Button'
+import { Users, Calendar, MessageSquare, AlertTriangle, UserPlus, Settings, ArrowRight } from 'lucide-react'
+import { getAllUsersAPI, getAllFacultyAPI, getAdminUsersAPI, getAdminEventsAPI } from '../../services/api'
+import toast from 'react-hot-toast'
 
 const AdminDashboard = () => {
-  const stats = useMemo(() => {
-    const students = userAccounts.filter(u => u.role === 'student').length
-    const faculty = userAccounts.filter(u => u.role === 'faculty').length
-    const hr = userAccounts.filter(u => u.role === 'hr').length
-    const activeEventsCount = campusEvents.filter(e => ['Active', 'Approved'].includes(e.status)).length
+  const navigate = useNavigate()
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    totalFaculty: 0,
+    totalHR: 0,
+    activeEvents: 0
+  })
+  const [loading, setLoading] = useState(true)
 
-    return {
-      totalStudents: students,
-      totalFaculty: faculty,
-      totalHR: hr,
-      activeEvents: activeEventsCount
-    }
+  useEffect(() => {
+    loadDashboardData()
   }, [])
 
-  const userGrowthData = [
-    { month: 'Jan', students: 4500, faculty: 140 },
-    { month: 'Feb', students: 4700, faculty: 145 },
-    { month: 'Mar', students: 4900, faculty: 150 },
-    { month: 'Apr', students: 5100, faculty: 153 },
-    { month: 'May', students: 5200, faculty: 155 },
-    { month: 'Jun', students: stats.totalStudents, faculty: stats.totalFaculty }
-  ]
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true)
+      
+      // Load all users to count students
+      const usersRes = await getAllUsersAPI()
+      const students = usersRes?.data?.users?.filter(u => u.role === 'student') || []
+      
+      // Load faculty
+      const facultyRes = await getAllFacultyAPI()
+      const faculty = facultyRes?.data?.faculty || []
+      
+      // Load HR/Admin accounts
+      const hrRes = await getAdminUsersAPI()
+      const hr = hrRes?.data?.admins?.filter(u => u.role === 'hr') || []
+      
+      // Load events
+      const eventsRes = await getAdminEventsAPI()
+      const events = eventsRes?.data?.events || []
+      const activeEvents = events.filter(e => ['approved', 'active'].includes(e.status?.toLowerCase()))
+      
+      setStats({
+        totalStudents: students.length,
+        totalFaculty: faculty.length,
+        totalHR: hr.length,
+        activeEvents: activeEvents.length
+      })
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+      toast.error('Failed to load dashboard data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const statCards = [
-    { label: 'Total Students', value: stats.totalStudents.toLocaleString(), accent: 'from-sky-500 to-cyan-400', subtext: 'Active enrolments', icon: Users },
-    { label: 'Total Faculty', value: stats.totalFaculty, accent: 'from-indigo-500 to-violet-500', subtext: 'Teaching & mentors', icon: Users },
-    { label: 'Total HR Accounts', value: stats.totalHR, accent: 'from-emerald-500 to-green-400', subtext: 'Recruitment partners', icon: Users },
-    { label: 'Active Events', value: stats.activeEvents, accent: 'from-fuchsia-500 to-pink-500', subtext: 'Live campus activities', icon: Calendar }
+    { 
+      label: 'Total Students', 
+      value: stats.totalStudents.toLocaleString(), 
+      accent: 'from-blue-500 to-cyan-500', 
+      subtext: 'Active enrolments', 
+      icon: Users 
+    },
+    { 
+      label: 'Total Faculty', 
+      value: stats.totalFaculty, 
+      accent: 'from-indigo-500 to-purple-500', 
+      subtext: 'Teaching & mentors', 
+      icon: Users 
+    },
+    { 
+      label: 'Total HR', 
+      value: stats.totalHR, 
+      accent: 'from-emerald-500 to-teal-500', 
+      subtext: 'Recruitment partners', 
+      icon: Users 
+    },
+    { 
+      label: 'Active Events', 
+      value: stats.activeEvents, 
+      accent: 'from-pink-500 to-rose-500', 
+      subtext: 'Live campus activities', 
+      icon: Calendar 
+    }
+  ]
+
+  const actionCards = [
+    {
+      title: 'User Management',
+      description: 'Manage students, faculty, and HR accounts',
+      icon: UserPlus,
+      path: '/admin/users',
+      color: 'from-blue-500 to-cyan-500',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-700'
+    },
+    {
+      title: 'Event Management',
+      description: 'Review and approve event requests',
+      icon: Calendar,
+      path: '/admin/events',
+      color: 'from-purple-500 to-pink-500',
+      bgColor: 'bg-purple-50',
+      textColor: 'text-purple-700'
+    },
+    {
+      title: 'Complaint Center',
+      description: 'View and resolve pending complaints',
+      icon: AlertTriangle,
+      path: '/admin/complaints',
+      color: 'from-orange-500 to-red-500',
+      bgColor: 'bg-orange-50',
+      textColor: 'text-orange-700'
+    },
+    {
+      title: 'Communication Center',
+      description: 'Send messages and broadcasts',
+      icon: MessageSquare,
+      path: '/admin/communication',
+      color: 'from-green-500 to-emerald-500',
+      bgColor: 'bg-green-50',
+      textColor: 'text-green-700'
+    }
   ]
 
   return (
     <AdminLayout>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-        <div className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white p-8 border border-white/10 shadow-[0_20px_60px_rgba(2,6,23,0.65)]">
-          <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Admin Control Surface</p>
-          <div className="mt-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <h1 className="text-3xl font-bold">SmartCampus Command Center</h1>
-              <p className="text-slate-300 mt-2">Monitor enrolments, capacity and campus workflows from a single pane.</p>
-            </div>
-            {/* <div className="rounded-2xl bg-white/10 px-6 py-3 border border-white/20 text-sm">
-              <p className="text-slate-300">Last sync · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-              <p className="text-white font-semibold">All systems connected</p>
-            </div> */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        className="space-y-8 p-4 md:p-6"
+      >
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-3">Admin Dashboard</h1>
+          <p className="text-lg text-slate-300">Monitor and manage campus operations from a single control center</p>
+        </div>
+
+        {/* Dashboard Overview Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-6">Dashboard Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {statCards.map((stat, idx) => {
+              const Icon = stat.icon
+              return (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  whileHover={{ y: -4, scale: 1.02 }}
+                >
+                  <Card className="relative overflow-hidden p-6 hover:shadow-xl transition-all">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`w-14 h-14 bg-gradient-to-br ${stat.accent} rounded-xl flex items-center justify-center shadow-lg`}>
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 mb-1">{stat.label}</p>
+                      {loading ? (
+                        <div className="h-8 w-20 bg-slate-200 rounded animate-pulse" />
+                      ) : (
+                        <p className="text-3xl font-bold text-slate-900 mb-1">{stat.value}</p>
+                      )}
+                      <p className="text-xs text-slate-500">{stat.subtext}</p>
+                    </div>
+                  </Card>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {statCards.map((stat, idx) => {
-            const Icon = stat.icon
-            return (
-              <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }} whileHover={{ y: -4 }}>
-                <Card className="relative overflow-hidden bg-slate-900 text-white border border-white/10">
-                  <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.35),_transparent_70%)]" />
-                  <div className="relative flex flex-col gap-2">
-                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.accent} flex items-center justify-center shadow-lg shadow-slate-900/40`}>
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                    <p className="text-xs uppercase tracking-wide text-black">{stat.label}</p>
-                    <p className="text-3xl font-bold text-black">{stat.value}</p>
-                    <p className="text-xs text-black">{stat.subtext}</p>
-                  </div>
-                </Card>
-              </motion.div>
-            )
-          })}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 border border-slate-100/10 bg-white/70 backdrop-blur">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Growth Lens</p>
-                <h2 className="text-2xl font-bold text-slate-900">User Growth Trend</h2>
-              </div>
-              <span className="text-sm text-slate-500">Students vs Faculty</span>
-            </div>
-            <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={userGrowthData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
-                <Tooltip contentStyle={{ background: '#0f172a', color: 'white', border: 'none', borderRadius: '12px' }} />
-                <Line type="monotone" dataKey="students" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey="faculty" stroke="#a855f7" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </Card>
-
-          <Card className="border border-slate-100/10 bg-white/80 backdrop-blur">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Live Feed</p>
-                <h2 className="text-xl font-bold text-slate-900">Recent Activity</h2>
-              </div>
-              <MessageSquare className="w-5 h-5 text-slate-400" />
-            </div>
-            <div className="space-y-4">
-              {recentActivities.map((activity, idx) => (
+        {/* Management Tools Section */}
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-6">Management Tools</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {actionCards.map((action, idx) => {
+              const Icon = action.icon
+              return (
                 <motion.div
-                  key={activity.title}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 + idx * 0.08 }}
-                  className="p-3 rounded-2xl border border-slate-100 bg-slate-50/70"
+                  key={action.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 + idx * 0.1 }}
+                  whileHover={{ y: -4 }}
                 >
-                  <p className="text-sm font-semibold text-slate-900">{activity.title}</p>
-                  <p className="text-xs text-slate-500 flex items-center gap-2 mt-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 inline-flex" />
-                    {activity.time}
-                  </p>
+                  <Card 
+                    className="p-6 cursor-pointer hover:shadow-xl transition-all group"
+                    onClick={() => navigate(action.path)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`w-16 h-16 ${action.bgColor} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                        <Icon className={`w-8 h-8 ${action.textColor}`} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">{action.title}</h3>
+                        <p className="text-sm text-slate-600 mb-4">{action.description}</p>
+                        <div className={`flex items-center ${action.textColor} text-sm font-semibold`}>
+                          Open <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
                 </motion.div>
-              ))}
-            </div>
-          </Card>
+              )
+            })}
+          </div>
         </div>
       </motion.div>
     </AdminLayout>
