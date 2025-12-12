@@ -116,20 +116,30 @@ const AcademicCampus = () => {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-8 p-4 md:p-6"
       >
-        {/* Page Header */}
+        {/* Page Header with Colors */}
         <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <p className="text-sm uppercase tracking-wide text-slate-500 mb-2">Academic & Campus</p>
-              <h1 className="text-4xl font-bold text-slate-900 mb-3">Academic & Campus</h1>
-              <p className="text-lg text-slate-600 max-w-2xl">
-                A comprehensive information surface that highlights classes, attention areas, notifications and navigation into every academic tool.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button variant="secondary" onClick={() => navigate('/student/dashboard')}>
-                Back to dashboard
-              </Button>
+          <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-400 to-pink-400 rounded-2xl p-8 md:p-10 text-white shadow-xl">
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.3),_transparent_60%)]"></div>
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_bottom_left,_rgba(255,255,255,0.2),_transparent_50%)]"></div>
+            <div className="relative z-10">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div className="space-y-3">
+                  <p className="text-sm uppercase tracking-[0.2em] text-indigo-100 font-semibold">Academic & Campus</p>
+                  <h1 className="text-4xl md:text-5xl font-bold text-white">Academic & Campus</h1>
+                  <p className="text-lg text-indigo-50 max-w-2xl">
+                    A comprehensive information surface that highlights classes, attention areas, notifications and navigation into every academic tool.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => navigate('/student/dashboard')}
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
+                  >
+                    Back to dashboard
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
