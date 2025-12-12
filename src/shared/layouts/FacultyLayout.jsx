@@ -59,6 +59,7 @@ const FacultyLayout = ({ children }) => {
         { icon: Calendar, label: 'Attendance', path: '/faculty/attendance' },
         { icon: CalendarCheck, label: 'Timetable', path: '/faculty/timetable' },
         { icon: Award, label: 'Skills Development', path: '/faculty/skills' },
+        { icon: Bell, label: 'Announcements', path: '/faculty/announcements' },
       ]
     },
     {

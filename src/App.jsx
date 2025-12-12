@@ -14,6 +14,7 @@ import ComplaintsPage from './students/pages/academic/ComplaintsPage'
 import EventsPage from './students/pages/academic/EventsPage'
 import MessagesPage from './students/pages/academic/MessagesPage'
 import NotificationsPage from './students/pages/academic/NotificationsPage'
+import AnnouncementsPage from './students/pages/academic/AnnouncementsPage'
 import SkillsPage from './students/pages/SkillsPage'
 import SkillProgressionPage from './students/pages/SkillProgressionPage'
 import PlacementPage from './students/pages/PlacementPage'
@@ -49,6 +50,8 @@ import FacultySkillsManagement from './faculty/pages/FacultySkillsManagement'
 import SkillBuilder from './faculty/pages/SkillBuilder'
 import ViewStudentProgress from './faculty/pages/ViewStudentProgress'
 import FacultyTimetable from './faculty/pages/FacultyTimetable'
+import FacultyAnnouncements from './faculty/pages/FacultyAnnouncements'
+import AdminAnnouncements from './admin/pages/AdminAnnouncements'
 import './App.css'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 
@@ -81,6 +84,7 @@ function App() {
         <Route path="/student/academic/events" element={<EventsPage />} />
         <Route path="/student/academic/messages" element={<MessagesPage />} />
         <Route path="/student/academic/notifications" element={<NotificationsPage />} />
+        <Route path="/student/academic/announcements" element={<AnnouncementsPage />} />
         <Route path="/student/skills" element={<SkillsPage />} />
         <Route path="/student/skills/:skillId" element={<SkillProgressionPage />} />
         <Route path="/student/placement" element={<PlacementPage />} />
@@ -152,6 +156,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/announcements"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminAnnouncements />
+            </ProtectedRoute>
+          }
+        />
         
         {/* Faculty Routes */}
         <Route path="/faculty" element={<Navigate to="/faculty/dashboard" replace />} />
@@ -170,6 +182,7 @@ function App() {
         <Route path="/faculty/skills/:skillId" element={<SkillBuilder />} />
         <Route path="/faculty/skills/:skillId/students" element={<ViewStudentProgress />} />
         <Route path="/faculty/timetable" element={<FacultyTimetable />} />
+        <Route path="/faculty/announcements" element={<FacultyAnnouncements />} />
         
         {/* HR Routes */}
         <Route path="/hr" element={<Navigate to="/hr/dashboard" replace />} />

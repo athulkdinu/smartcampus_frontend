@@ -98,6 +98,7 @@ const AcademicCampus = () => {
     { title: 'Academic Grades', description: 'Subject-wise breakdown & transcripts.', stat: `${gradesData.length} subjects`, path: '/student/academic/grades', icon: TrendingUp },
     { title: 'Attendance Insights', description: 'Daily tracker, warnings & trends.', stat: `${overallAttendance}% overall`, path: '/student/academic/attendance', icon: Calendar },
     { title: 'Assignments Board', description: 'Submissions, feedback & timers.', stat: `${assignments.length} tasks`, path: '/student/academic/assignments', icon: BookOpen },
+    { title: 'Announcements', description: 'Campus updates & important notices.', stat: 'Latest updates', path: '/student/academic/announcements', icon: Bell },
     { title: 'Leave Portal', description: 'Apply, upload proofs & track approvals.', stat: `${leaveRequests.length} records`, path: '/student/academic/leave', icon: Calendar },
     { title: 'Exam Hub', description: 'Schedules, seating & hall tickets.', stat: `${exams.length} upcoming`, path: '/student/academic/exams', icon: BookOpen },
     { title: 'Complaints Desk', description: 'Raise infra/service concerns.', stat: `${complaints.length} tickets`, path: '/student/academic/complaints', icon: Bell }

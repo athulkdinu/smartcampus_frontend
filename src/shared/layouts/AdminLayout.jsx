@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { Toaster } from 'react-hot-toast'
-import { LayoutDashboard, Users, Calendar, AlertTriangle, MessageSquare, Shield, BookOpen, GraduationCap } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, AlertTriangle, MessageSquare, Shield, BookOpen, GraduationCap, Bell } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 
@@ -28,6 +28,7 @@ const AdminLayout = ({ children }) => {
     { icon: BookOpen, label: 'Class Management', path: '/admin/classes' },
     { icon: GraduationCap, label: 'Exam Management', path: '/admin/exams' },
     { icon: Calendar, label: 'Event Management', path: '/admin/events' },
+    { icon: Bell, label: 'Announcements', path: '/admin/announcements' },
     { icon: AlertTriangle, label: 'Complaint Management', path: '/admin/complaints' },
     { icon: MessageSquare, label: 'Communication Center', path: '/admin/communication' }
   ]

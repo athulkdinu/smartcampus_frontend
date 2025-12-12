@@ -12,7 +12,7 @@ import {
   CheckCircle2,
   AlertCircle,
   User,
-  FileText
+  Bell
 } from 'lucide-react'
 import MainLayout from '../../shared/layouts/MainLayout'
 import Card from '../../shared/components/Card'
@@ -21,6 +21,8 @@ import Modal from '../../shared/components/Modal'
 import { weeklyTimetable } from '../data/academicData'
 import { getStudentAttendanceSummaryAPI } from '../../services/attendanceAPI'
 import { getTodayClassesAPI, getTimetableAPI } from '../../services/timetableAPI'
+import { getStudentAnnouncementsAPI } from '../../services/announcementAPI'
+import { getUpcomingDeadlinesAPI } from '../../services/assignmentAPI'
 import toast from 'react-hot-toast'
 
 const StudentDashboard = () => {
@@ -41,6 +43,10 @@ const StudentDashboard = () => {
   const [fullTimetable, setFullTimetable] = useState(null)
   const [loadingTimetable, setLoadingTimetable] = useState(false)
   const [studentClassName, setStudentClassName] = useState(null)
+  const [announcements, setAnnouncements] = useState([])
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true)
+  const [upcomingDeadlines, setUpcomingDeadlines] = useState([])
+  const [loadingDeadlines, setLoadingDeadlines] = useState(true)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -52,6 +58,8 @@ const StudentDashboard = () => {
   useEffect(() => {
     loadAttendanceSummary()
     loadTodayClasses()
+    loadAnnouncements()
+    loadUpcomingDeadlines()
   }, [])
 
   const loadAttendanceSummary = async () => {
@@ -153,18 +161,67 @@ const StudentDashboard = () => {
     upcomingExams: 2
   }
 
-  const recentActivities = [
-    { type: 'assignment', title: 'Submitted: Web Development Project', time: '2 hours ago', icon: CheckCircle2, color: 'text-green-600' },
-    { type: 'notice', title: 'New Notice: Library Hours Extended', time: '5 hours ago', icon: AlertCircle, color: 'text-blue-600' },
-    { type: 'grade', title: 'Grade Updated: Data Structures', time: '1 day ago', icon: Award, color: 'text-purple-600' },
-    { type: 'skill', title: 'Completed: JavaScript Fundamentals', time: '2 days ago', icon: CheckCircle2, color: 'text-indigo-600' }
-  ]
+  const loadAnnouncements = async () => {
+    try {
+      setLoadingAnnouncements(true)
+      const res = await getStudentAnnouncementsAPI()
+      if (res?.status === 200) {
+        setAnnouncements((res.data.announcements || []).slice(0, 3)) // Show latest 3
+      }
+    } catch (error) {
+      console.error('Error loading announcements:', error)
+    } finally {
+      setLoadingAnnouncements(false)
+    }
+  }
 
-  const upcomingDeadlines = [
-    { title: 'Database Assignment', subject: 'Database Systems', dueDate: 'Tomorrow', priority: 'high' },
-    { title: 'Web Dev Project', subject: 'Web Development', dueDate: '3 days', priority: 'medium' },
-    { title: 'Research Paper', subject: 'Data Structures', dueDate: '1 week', priority: 'low' }
-  ]
+  const loadUpcomingDeadlines = async () => {
+    try {
+      setLoadingDeadlines(true)
+      const res = await getUpcomingDeadlinesAPI()
+      if (res?.status === 200) {
+        const deadlines = (res.data.deadlines || []).map(deadline => {
+          const dueDate = new Date(deadline.dueDate)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const diffTime = dueDate - today
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          
+          let dueDateText = ''
+          let priority = 'low'
+          if (diffDays < 0) {
+            dueDateText = 'Overdue'
+            priority = 'high'
+          } else if (diffDays === 0) {
+            dueDateText = 'Today'
+            priority = 'high'
+          } else if (diffDays === 1) {
+            dueDateText = 'Tomorrow'
+            priority = 'high'
+          } else if (diffDays <= 3) {
+            dueDateText = `${diffDays} days`
+            priority = 'medium'
+          } else {
+            dueDateText = `${diffDays} days`
+            priority = 'low'
+          }
+
+          return {
+            id: deadline.id,
+            title: deadline.title,
+            subject: deadline.subject,
+            dueDate: dueDateText,
+            priority
+          }
+        })
+        setUpcomingDeadlines(deadlines)
+      }
+    } catch (error) {
+      console.error('Error loading upcoming deadlines:', error)
+    } finally {
+      setLoadingDeadlines(false)
+    }
+  }
 
   const statCards = [
     {
@@ -320,39 +377,47 @@ const StudentDashboard = () => {
                     View All →
                   </Button>
                 </div>
-                <div className="space-y-4">
-                  {upcomingDeadlines.map((deadline, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 + idx * 0.1 }}
-                      className={`p-5 rounded-xl border-l-4 ${
-                        deadline.priority === 'high'
-                          ? 'border-red-500 bg-red-50'
-                          : deadline.priority === 'medium'
-                            ? 'border-yellow-500 bg-yellow-50'
-                            : 'border-blue-500 bg-blue-50'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="font-semibold text-base text-slate-900 mb-1">{deadline.title}</div>
-                          <div className="text-sm text-slate-600">{deadline.subject}</div>
-                        </div>
-                        <div className={`text-xs font-semibold px-4 py-2 rounded-full ${
+                {loadingDeadlines ? (
+                  <div className="text-sm text-slate-500 py-8 text-center">Loading deadlines...</div>
+                ) : upcomingDeadlines.length === 0 ? (
+                  <div className="text-sm text-slate-500 py-8 text-center">
+                    No upcoming deadlines
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {upcomingDeadlines.map((deadline, idx) => (
+                      <motion.div
+                        key={deadline.id || idx}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5 + idx * 0.1 }}
+                        className={`p-5 rounded-xl border-l-4 ${
                           deadline.priority === 'high'
-                            ? 'bg-red-100 text-red-700'
+                            ? 'border-red-500 bg-red-50'
                             : deadline.priority === 'medium'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {deadline.dueDate}
+                              ? 'border-yellow-500 bg-yellow-50'
+                              : 'border-blue-500 bg-blue-50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="font-semibold text-base text-slate-900 mb-1">{deadline.title}</div>
+                            <div className="text-sm text-slate-600">{deadline.subject}</div>
+                          </div>
+                          <div className={`text-xs font-semibold px-4 py-2 rounded-full ${
+                            deadline.priority === 'high'
+                              ? 'bg-red-100 text-red-700'
+                              : deadline.priority === 'medium'
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {deadline.dueDate}
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </Card>
             </motion.div>
           </div>
@@ -481,41 +546,83 @@ const StudentDashboard = () => {
               </Card>
             </motion.div>
 
-            {/* Recent Activities */}
+            {/* Announcements Panel */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
             >
               <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-purple-600" />
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                      <Bell className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">Announcements</h3>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">Recent Activities</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/student/academic/announcements')}
+                  >
+                    View All
+                  </Button>
                 </div>
-                <div className="space-y-4">
-                  {recentActivities.map((activity, idx) => {
-                    const Icon = activity.icon
-                    return (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.6 + idx * 0.1 }}
-                        className="p-4 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200"
-                      >
-                        <div className="flex items-start gap-3">
-                          <Icon className={`w-5 h-5 ${activity.color} mt-0.5 flex-shrink-0`} />
-                          <div className="flex-1">
-                            <div className="font-semibold text-sm text-slate-900 mb-1">{activity.title}</div>
-                            <div className="text-xs text-slate-500">{activity.time}</div>
+                {loadingAnnouncements ? (
+                  <div className="text-sm text-slate-500 py-8 text-center">Loading announcements...</div>
+                ) : announcements.length === 0 ? (
+                  <div className="text-sm text-slate-500 py-8 text-center">
+                    No announcements
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {announcements.map((announcement, idx) => {
+                      const getPriorityColor = (priority) => {
+                        switch (priority) {
+                          case 'high':
+                            return 'border-red-500 bg-red-50'
+                          case 'medium':
+                            return 'border-yellow-500 bg-yellow-50'
+                          case 'low':
+                            return 'border-blue-500 bg-blue-50'
+                          default:
+                            return 'border-slate-200 bg-slate-50'
+                        }
+                      }
+                      const getPriorityBadge = (priority) => {
+                        switch (priority) {
+                          case 'high':
+                            return <span className="text-xs font-semibold text-red-700">🔴 High</span>
+                          case 'medium':
+                            return <span className="text-xs font-semibold text-yellow-700">🟡 Medium</span>
+                          case 'low':
+                            return <span className="text-xs font-semibold text-blue-700">🟢 Low</span>
+                          default:
+                            return null
+                        }
+                      }
+                      return (
+                        <motion.div
+                          key={announcement._id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.6 + idx * 0.1 }}
+                          className={`p-4 rounded-xl border-l-4 ${getPriorityColor(announcement.priority)} hover:shadow-md transition-all cursor-pointer`}
+                          onClick={() => navigate('/student/academic/announcements')}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-semibold text-sm text-slate-900 line-clamp-1">{announcement.title}</h4>
+                            {getPriorityBadge(announcement.priority)}
                           </div>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                </div>
+                          <p className="text-xs text-slate-600 line-clamp-2 mb-2">{announcement.message}</p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(announcement.createdAt).toLocaleDateString()}
+                          </p>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                )}
               </Card>
             </motion.div>
           </div>

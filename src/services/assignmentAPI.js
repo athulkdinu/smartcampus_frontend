@@ -36,3 +36,8 @@ export const submitAssignmentAPI = (assignmentId, formData) => {
   });
 };
 
+// GET /api/assignments/upcoming - Get upcoming deadlines for student
+export const getUpcomingDeadlinesAPI = () => {
+  return api.get("/api/assignments/upcoming");
+};
+
