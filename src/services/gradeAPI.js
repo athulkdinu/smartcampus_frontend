@@ -2,6 +2,7 @@ import api from "./api";
 
 // Faculty APIs
 // POST /api/grades/generate - Generate grade sheet (Faculty only)
+
 export const generateGradeSheetAPI = (data) => {
   return api.post("/api/grades/generate", data);
 };

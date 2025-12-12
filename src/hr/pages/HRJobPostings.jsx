@@ -1,48 +1,84 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import HRLayout from '../../shared/layouts/HRLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
-import { jobPostings as jobSeed, statusOptions } from '../data/hrDemoData'
 import { Briefcase, PlusCircle } from 'lucide-react'
+import { createJobAPI, fetchJobsAPI } from '../../services/placementAPI'
+
+const statusOptions = [
+  { value: 'Draft', label: 'Draft' },
+  { value: 'Active', label: 'Active' },
+  { value: 'Screening', label: 'Screening' },
+  { value: 'Closed', label: 'Closed' }
+]
 
 const HRJobPostings = () => {
-  const [jobs, setJobs] = useState(jobSeed)
+  const [jobs, setJobs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     title: '',
     company: '',
     mode: 'On-site',
-    ctc: '',
+    salary: '',
     openings: '',
     deadline: '',
     description: '',
     status: 'Draft'
   })
 
-  const handleSubmit = (e) => {
+  const loadJobs = async () => {
+    setLoading(true)
+    const res = await fetchJobsAPI({ mine: true })
+    if (res?.status === 200) {
+      setJobs(res.data.jobs || [])
+    } else {
+      toast.error(res?.response?.data?.message || 'Unable to load jobs')
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadJobs()
+  }, [])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.title || !form.company) {
       toast.error('Add the job title and company')
       return
     }
-    const newJob = {
-      id: `JOB-${Math.floor(Math.random() * 900 + 100)}`,
-      status: 'Draft',
-      ...form
-    }
-    setJobs(prev => [newJob, ...prev])
-    toast.success(`${form.title} saved as draft`)
-    setForm({
-      title: '',
-      company: '',
-      mode: 'On-site',
-      ctc: '',
-      openings: '',
-      deadline: '',
-      description: '',
-      status: 'Draft'
+    setSaving(true)
+    const res = await createJobAPI({
+      title: form.title,
+      company: form.company,
+      mode: form.mode,
+      jobType: form.mode,
+      salary: form.salary,
+      openings: form.openings,
+      deadline: form.deadline,
+      description: form.description,
+      status: form.status
     })
+    if (res?.status === 201) {
+      toast.success(`${form.title} saved`)
+      setJobs(prev => [res.data.job, ...prev])
+      setForm({
+        title: '',
+        company: '',
+        mode: 'On-site',
+        salary: '',
+        openings: '',
+        deadline: '',
+        description: '',
+        status: 'Draft'
+      })
+    } else {
+      toast.error(res?.response?.data?.message || 'Unable to save job')
+    }
+    setSaving(false)
   }
 
   return (
@@ -54,9 +90,9 @@ const HRJobPostings = () => {
             <h1 className="text-3xl font-bold text-slate-900">Create & share opportunities</h1>
             <p className="text-slate-600">Publish roles for campus drives and keep recruiters updated.</p>
           </div>
-          <Button variant="primary">
+          <Button variant="primary" onClick={loadJobs}>
             <PlusCircle className="w-4 h-4 mr-2" />
-            New posting
+            Refresh
           </Button>
         </div>
 
@@ -67,11 +103,15 @@ const HRJobPostings = () => {
               <span className="text-sm text-slate-500">{jobs.length} total roles</span>
             </div>
             <div className="space-y-4">
+              {loading && <p className="text-sm text-slate-500">Loading jobs...</p>}
+              {!loading && jobs.length === 0 && (
+                <p className="text-sm text-slate-500">No jobs yet. Create one to get started.</p>
+              )}
               {jobs.map(job => (
-                <div key={job.id} className="p-5 rounded-2xl border border-slate-200">
+                <div key={job._id || job.id} className="p-5 rounded-2xl border border-slate-200">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-500">{job.id}</p>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">{job._id || job.id}</p>
                       <h3 className="text-lg font-semibold text-slate-900">{job.title}</h3>
                       <p className="text-sm text-slate-500">{job.company}</p>
                     </div>
@@ -88,9 +128,9 @@ const HRJobPostings = () => {
                   <p className="text-sm text-slate-600 mb-2">{job.description}</p>
                   <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                     <span>{job.mode}</span>
-                    <span>CTC {job.ctc || 'TBD'}</span>
+                    <span>CTC {job.salary || 'TBD'}</span>
                     <span>{job.openings || '-'} openings</span>
-                    <span>Deadline {job.deadline || 'TBD'}</span>
+                    <span>Deadline {job.deadline ? job.deadline.split('T')[0] : 'TBD'}</span>
                   </div>
                 </div>
               ))}
@@ -127,8 +167,8 @@ const HRJobPostings = () => {
               <div className="grid grid-cols-2 gap-3">
                 <FormInput
                   label="CTC"
-                  value={form.ctc}
-                  onChange={(e) => setForm(prev => ({ ...prev, ctc: e.target.value }))}
+                  value={form.salary}
+                  onChange={(e) => setForm(prev => ({ ...prev, salary: e.target.value }))}
                   placeholder="8 LPA"
                 />
                 <FormInput
@@ -160,9 +200,9 @@ const HRJobPostings = () => {
                   ))}
                 </select>
               </div>
-              <Button type="submit" variant="primary" className="w-full">
+              <Button type="submit" variant="primary" className="w-full" disabled={saving}>
                 <Briefcase className="w-4 h-4 mr-2" />
-                Save job
+                {saving ? 'Saving...' : 'Save job'}
               </Button>
             </form>
           </Card>

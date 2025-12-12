@@ -1,265 +1,447 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import toast from 'react-hot-toast'
 import FacultyLayout from '../../shared/layouts/FacultyLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
-import RoundEditor from '../components/skills/RoundEditor'
-import { ArrowLeft, Save, Globe, FileText, CheckCircle2 } from 'lucide-react'
-import toast from 'react-hot-toast'
+import FormInput from '../../shared/components/FormInput'
+import Modal from '../../shared/components/Modal'
+import { ArrowLeft, Save, Globe, FileText, Video, HelpCircle, Code, Award, Plus, X } from 'lucide-react'
+import { getCourseAPI, updateCourseAPI, createOrUpdateRoundAPI } from '../../services/skillCourseAPI'
 
 const SkillBuilder = () => {
   const { skillId } = useParams()
   const navigate = useNavigate()
-  
-  const [skills, setSkills] = useState(() => {
-    const saved = localStorage.getItem('faculty_skills')
-    return saved ? JSON.parse(saved) : []
+  const [course, setCourse] = useState(null)
+  const [rounds, setRounds] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [activeRound, setActiveRound] = useState(1)
+  const [saving, setSaving] = useState(false)
+  const [courseForm, setCourseForm] = useState({
+    title: '',
+    shortDesc: '',
+    longDesc: '',
+    category: 'General',
+    passThreshold: 60,
+    status: 'Draft'
+  })
+  const [roundForms, setRoundForms] = useState({
+    1: { lessonTitle: '', contentType: 'text', videoUrl: '', textContent: '' },
+    2: { quizTitle: '', questions: [] },
+    3: { projectTitle: '', projectBrief: '', projectRequirements: [] },
+    4: { quizTitle: '', questions: [] }
   })
 
-  const [skill, setSkill] = useState(null)
-  const [expandedRound, setExpandedRound] = useState(1)
-  const [skillTitle, setSkillTitle] = useState('')
-  const [published, setPublished] = useState(false)
-
   useEffect(() => {
-    const foundSkill = skills.find(s => s.id === skillId)
-    if (foundSkill) {
-      setSkill(foundSkill)
-      setSkillTitle(foundSkill.title)
-      setPublished(foundSkill.published || false)
-      // Expand first incomplete round
-      const firstIncomplete = foundSkill.rounds.findIndex(r => !r.completed)
-      if (firstIncomplete !== -1) {
-        setExpandedRound(foundSkill.rounds[firstIncomplete].roundNumber)
+    loadCourse()
+  }, [skillId])
+
+  const loadCourse = async () => {
+    setLoading(true)
+    try {
+      const res = await getCourseAPI(skillId)
+      if (res?.status === 200) {
+        setCourse(res.data.course)
+        setRounds(res.data.rounds || [])
+        setCourseForm({
+          title: res.data.course.title,
+          shortDesc: res.data.course.shortDesc,
+          longDesc: res.data.course.longDesc || '',
+          category: res.data.course.category || 'General',
+          passThreshold: res.data.course.passThreshold || 60,
+          status: res.data.course.status || 'Draft'
+        })
+
+        // Load round data
+        const roundData = {}
+        res.data.rounds.forEach(round => {
+          if (round.roundNumber === 1) {
+            roundData[1] = {
+              lessonTitle: round.lessonTitle || '',
+              contentType: round.contentType || 'text',
+              videoUrl: round.videoUrl || '',
+              textContent: round.textContent || ''
+            }
+          } else if (round.roundNumber === 2 || round.roundNumber === 4) {
+            roundData[round.roundNumber] = {
+              quizTitle: round.quizTitle || '',
+              questions: round.questions || []
+            }
+          } else if (round.roundNumber === 3) {
+            roundData[3] = {
+              projectTitle: round.projectTitle || '',
+              projectBrief: round.projectBrief || '',
+              projectRequirements: round.projectRequirements || []
+            }
+          }
+        })
+        setRoundForms(prev => ({ ...prev, ...roundData }))
+      } else {
+        toast.error('Failed to load course')
+        navigate('/faculty/skills')
       }
-    } else {
-      toast.error('Skill not found')
-      navigate('/faculty/skills')
+    } catch (error) {
+      console.error('Error loading course:', error)
+      toast.error('Failed to load course')
+    } finally {
+      setLoading(false)
     }
-  }, [skillId, skills, navigate])
-
-  // No locking for faculty - they can edit all rounds freely
-
-  const allRoundsCompleted = skill?.rounds.every(r => r.completed) || false
-
-  const handleSaveRound = (roundNumber, roundData) => {
-    const updatedRounds = skill.rounds.map(r => 
-      r.roundNumber === roundNumber ? { ...r, ...roundData } : r
-    )
-
-    const updatedSkill = {
-      ...skill,
-      title: skillTitle,
-      rounds: updatedRounds
-    }
-
-    const updatedSkills = skills.map(s => 
-      s.id === skillId ? updatedSkill : s
-    )
-
-    setSkills(updatedSkills)
-    setSkill(updatedSkill)
-    localStorage.setItem('faculty_skills', JSON.stringify(updatedSkills))
-    
-    toast.success(`Round ${roundNumber} saved successfully!`)
   }
 
-  const handleTogglePublish = () => {
-    if (!allRoundsCompleted) {
-      toast.error('Please complete all 4 rounds before publishing')
-      return
-    }
-
-    const updatedSkill = {
-      ...skill,
-      title: skillTitle,
-      published: !published,
-      status: !published ? 'Published' : 'Draft'
-    }
-
-    const updatedSkills = skills.map(s => 
-      s.id === skillId ? updatedSkill : s
-    )
-
-    setSkills(updatedSkills)
-    setSkill(updatedSkill)
-    setPublished(!published)
-    localStorage.setItem('faculty_skills', JSON.stringify(updatedSkills))
-    
-    // Also update published skills in student portal
-    const publishedSkills = JSON.parse(localStorage.getItem('published_skills') || '[]')
-    if (!published) {
-      // Add to published
-      const skillForStudents = {
-        id: skill.id,
-        title: skillTitle,
-        category: 'Programming', // Default, can be made editable
-        description: `Complete ${skillTitle} skill with 4 rounds of learning`,
-        difficulty: 'Intermediate',
-        duration: '4 weeks',
-        status: 'Published',
-        startDate: 'Available Now'
+  const handleSaveCourse = async () => {
+    setSaving(true)
+    try {
+      const res = await updateCourseAPI(skillId, courseForm)
+      if (res?.status === 200) {
+        toast.success('Course updated')
+        setCourse(res.data.course)
+      } else {
+        toast.error('Failed to update course')
       }
-      const updatedPublished = [...publishedSkills.filter(s => s.id !== skill.id), skillForStudents]
-      localStorage.setItem('published_skills', JSON.stringify(updatedPublished))
-      toast.success('Skill published! Students can now see it in Recommended Skills.')
-    } else {
-      // Remove from published
-      const updatedPublished = publishedSkills.filter(s => s.id !== skill.id)
-      localStorage.setItem('published_skills', JSON.stringify(updatedPublished))
-      toast.success('Skill unpublished')
+    } catch (error) {
+      toast.error('Failed to update course')
+    } finally {
+      setSaving(false)
     }
   }
 
-  const handleSaveSkill = () => {
-    const updatedSkill = {
-      ...skill,
-      title: skillTitle
+  const handleSaveRound = async (roundNumber) => {
+    setSaving(true)
+    try {
+      const roundData = roundForms[roundNumber]
+      const payload = { roundNumber, ...roundData }
+      
+      const res = await createOrUpdateRoundAPI(skillId, payload)
+      if (res?.status === 200) {
+        toast.success(`Round ${roundNumber} saved`)
+        await loadCourse()
+      } else {
+        toast.error('Failed to save round')
+      }
+    } catch (error) {
+      toast.error('Failed to save round')
+    } finally {
+      setSaving(false)
     }
-
-    const updatedSkills = skills.map(s => 
-      s.id === skillId ? updatedSkill : s
-    )
-
-    setSkills(updatedSkills)
-    setSkill(updatedSkill)
-    localStorage.setItem('faculty_skills', JSON.stringify(updatedSkills))
-    toast.success('Skill saved!')
   }
 
-  if (!skill) {
+  const addQuestion = (roundNumber) => {
+    setRoundForms(prev => ({
+      ...prev,
+      [roundNumber]: {
+        ...prev[roundNumber],
+        questions: [...(prev[roundNumber].questions || []), { question: '', options: ['', '', '', ''], correctIndex: 0 }]
+      }
+    }))
+  }
+
+  const removeQuestion = (roundNumber, index) => {
+    setRoundForms(prev => ({
+      ...prev,
+      [roundNumber]: {
+        ...prev[roundNumber],
+        questions: prev[roundNumber].questions.filter((_, i) => i !== index)
+      }
+    }))
+  }
+
+  const updateQuestion = (roundNumber, index, field, value) => {
+    setRoundForms(prev => {
+      const questions = [...prev[roundNumber].questions]
+      questions[index] = { ...questions[index], [field]: value }
+      return { ...prev, [roundNumber]: { ...prev[roundNumber], questions } }
+    })
+  }
+
+  const updateOption = (roundNumber, questionIndex, optionIndex, value) => {
+    setRoundForms(prev => {
+      const questions = [...prev[roundNumber].questions]
+      const options = [...questions[questionIndex].options]
+      options[optionIndex] = value
+      questions[questionIndex] = { ...questions[questionIndex], options }
+      return { ...prev, [roundNumber]: { ...prev[roundNumber], questions } }
+    })
+  }
+
+  const addRequirement = (roundNumber) => {
+    setRoundForms(prev => ({
+      ...prev,
+      [roundNumber]: {
+        ...prev[roundNumber],
+        projectRequirements: [...(prev[roundNumber].projectRequirements || []), '']
+      }
+    }))
+  }
+
+  if (loading) {
     return (
       <FacultyLayout>
-        <div className="text-center py-12">
-          <p className="text-slate-500">Loading...</p>
-        </div>
+        <Card>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-slate-500">Loading course...</p>
+          </div>
+        </Card>
+      </FacultyLayout>
+    )
+  }
+
+  if (!course) {
+    return (
+      <FacultyLayout>
+        <Card>
+          <div className="text-center py-12">
+            <p className="text-slate-500">Course not found</p>
+            <Button onClick={() => navigate('/faculty/skills')} className="mt-4">Back</Button>
+          </div>
+        </Card>
       </FacultyLayout>
     )
   }
 
   return (
     <FacultyLayout>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-5xl mx-auto space-y-6"
-      >
-        {/* Header */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
         <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/faculty/skills')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Skills
-          </Button>
-          <div className="flex items-center gap-3">
-            {allRoundsCompleted && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-                <span className="text-sm font-semibold text-green-700">Ready to Publish</span>
-              </div>
-            )}
-            <Button
-              variant={published ? 'secondary' : 'primary'}
-              onClick={handleTogglePublish}
-              disabled={!allRoundsCompleted}
-              className="flex items-center gap-2"
-            >
-              {published ? (
-                <>
-                  <FileText className="w-4 h-4" />
-                  Unpublish
-                </>
-              ) : (
-                <>
-                  <Globe className="w-4 h-4" />
-                  Publish Skill
-                </>
-              )}
+          <div>
+            <Button variant="secondary" onClick={() => navigate('/faculty/skills')} className="mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Courses
             </Button>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Edit Course</h1>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={handleSaveCourse} loading={saving}>
+              <Save className="w-4 h-4 mr-2" />
+              Save Course
+            </Button>
+            {courseForm.status === 'Draft' ? (
+              <Button variant="primary" onClick={() => setCourseForm({ ...courseForm, status: 'Published' })}>
+                <Globe className="w-4 h-4 mr-2" />
+                Publish
+              </Button>
+            ) : (
+              <Button variant="secondary" onClick={() => setCourseForm({ ...courseForm, status: 'Draft' })}>
+                <FileText className="w-4 h-4 mr-2" />
+                Unpublish
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Skill Title */}
+        {/* Course Info */}
         <Card>
-          <div className="p-6">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Skill Title
-            </label>
-            <input
-              type="text"
-              value={skillTitle}
-              onChange={(e) => setSkillTitle(e.target.value)}
-              onBlur={handleSaveSkill}
-              className="w-full px-4 py-3 text-xl font-bold rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="e.g., React Development, Python Programming"
+          <h2 className="text-xl font-bold text-slate-900 mb-4">Course Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormInput
+              label="Title"
+              value={courseForm.title}
+              onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+              required
             />
-            <p className="text-xs text-slate-500 mt-2">
-              {published ? (
-                <span className="flex items-center gap-1 text-green-600">
-                  <Globe className="w-3 h-3" />
-                  This skill is published and visible to students
-                </span>
-              ) : (
-                <span className="flex items-center gap-1">
-                  <FileText className="w-3 h-3" />
-                  Draft mode - Complete all rounds to publish
-                </span>
-              )}
-            </p>
+            <FormInput
+              label="Category"
+              value={courseForm.category}
+              onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
+            />
+            <FormInput
+              label="Short Description"
+              value={courseForm.shortDesc}
+              onChange={(e) => setCourseForm({ ...courseForm, shortDesc: e.target.value })}
+              required
+            />
+            <FormInput
+              label="Pass Threshold (%)"
+              type="number"
+              value={courseForm.passThreshold}
+              onChange={(e) => setCourseForm({ ...courseForm, passThreshold: parseInt(e.target.value) || 60 })}
+            />
+            <div className="md:col-span-2">
+              <FormInput
+                label="Long Description"
+                value={courseForm.longDesc}
+                onChange={(e) => setCourseForm({ ...courseForm, longDesc: e.target.value })}
+                type="textarea"
+                rows={4}
+              />
+            </div>
           </div>
         </Card>
 
-        {/* Rounds */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-slate-900">Learning Rounds</h2>
-          {skill.rounds.map((round) => {
-            return (
-              <RoundEditor
-                key={round.roundNumber}
-                round={round}
-                isExpanded={expandedRound === round.roundNumber}
-                onToggle={() => setExpandedRound(expandedRound === round.roundNumber ? null : round.roundNumber)}
-                onSave={(roundData) => handleSaveRound(round.roundNumber, roundData)}
-              />
-            )
-          })}
-        </div>
-
-        {/* Content Summary */}
+        {/* Round Tabs */}
         <Card>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Content Summary</h3>
-            <div className="space-y-2">
-              {skill.rounds.map((round) => (
-                <div key={round.roundNumber} className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">
-                    Round {round.roundNumber}: {round.title}
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    round.completed
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {round.completed ? 'Content Added' : 'No Content'}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 pt-4 border-t border-slate-200">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-700">
-                  Rounds with Content
-                </span>
-                <span className="text-lg font-bold text-slate-900">
-                  {skill.rounds.filter(r => r.completed).length} / 4 rounds
-                </span>
-              </div>
-            </div>
+          <div className="flex gap-2 mb-6 border-b border-slate-200">
+            {[1, 2, 3, 4].map(num => {
+              const icons = { 1: Video, 2: HelpCircle, 3: Code, 4: Award }
+              const labels = { 1: 'Learn', 2: 'Quiz', 3: 'Project', 4: 'Final' }
+              const Icon = icons[num]
+              return (
+                <button
+                  key={num}
+                  onClick={() => setActiveRound(num)}
+                  className={`px-4 py-2 flex items-center gap-2 border-b-2 transition ${
+                    activeRound === num
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  Round {num}: {labels[num]}
+                </button>
+              )
+            })}
           </div>
+
+          {/* Round 1 Content */}
+          {activeRound === 1 && (
+            <div className="space-y-4">
+              <FormInput
+                label="Lesson Title"
+                value={roundForms[1].lessonTitle}
+                onChange={(e) => setRoundForms({ ...roundForms, 1: { ...roundForms[1], lessonTitle: e.target.value } })}
+              />
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Content Type</label>
+                <select
+                  value={roundForms[1].contentType}
+                  onChange={(e) => setRoundForms({ ...roundForms, 1: { ...roundForms[1], contentType: e.target.value } })}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                >
+                  <option value="text">Text</option>
+                  <option value="video">Video</option>
+                </select>
+              </div>
+              {roundForms[1].contentType === 'video' ? (
+                <FormInput
+                  label="Video URL (YouTube embed URL)"
+                  placeholder="https://www.youtube.com/embed/..."
+                  value={roundForms[1].videoUrl}
+                  onChange={(e) => setRoundForms({ ...roundForms, 1: { ...roundForms[1], videoUrl: e.target.value } })}
+                />
+              ) : (
+                <FormInput
+                  label="Text Content"
+                  value={roundForms[1].textContent}
+                  onChange={(e) => setRoundForms({ ...roundForms, 1: { ...roundForms[1], textContent: e.target.value } })}
+                  type="textarea"
+                  rows={10}
+                />
+              )}
+              <Button variant="primary" onClick={() => handleSaveRound(1)} loading={saving}>
+                Save Round 1
+              </Button>
+            </div>
+          )}
+
+          {/* Round 2 & 4 Quiz */}
+          {(activeRound === 2 || activeRound === 4) && (
+            <div className="space-y-4">
+              <FormInput
+                label="Quiz Title"
+                value={roundForms[activeRound].quizTitle}
+                onChange={(e) => setRoundForms({ ...roundForms, [activeRound]: { ...roundForms[activeRound], quizTitle: e.target.value } })}
+              />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-900">Questions</h3>
+                  <Button variant="secondary" size="sm" onClick={() => addQuestion(activeRound)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Question
+                  </Button>
+                </div>
+                {roundForms[activeRound].questions?.map((q, idx) => (
+                  <div key={idx} className="p-4 border border-slate-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-semibold text-slate-900">Question {idx + 1}</span>
+                      <Button variant="secondary" size="sm" onClick={() => removeQuestion(activeRound, idx)}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <FormInput
+                      label="Question"
+                      value={q.question}
+                      onChange={(e) => updateQuestion(activeRound, idx, 'question', e.target.value)}
+                    />
+                    <div className="space-y-2 mt-3">
+                      {q.options.map((opt, optIdx) => (
+                        <div key={optIdx} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`q${idx}`}
+                            checked={q.correctIndex === optIdx}
+                            onChange={() => updateQuestion(activeRound, idx, 'correctIndex', optIdx)}
+                            className="w-4 h-4"
+                          />
+                          <FormInput
+                            value={opt}
+                            onChange={(e) => updateOption(activeRound, idx, optIdx, e.target.value)}
+                            placeholder={`Option ${optIdx + 1}`}
+                            className="flex-1"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button variant="primary" onClick={() => handleSaveRound(activeRound)} loading={saving}>
+                Save Round {activeRound}
+              </Button>
+            </div>
+          )}
+
+          {/* Round 3 Project */}
+          {activeRound === 3 && (
+            <div className="space-y-4">
+              <FormInput
+                label="Project Title"
+                value={roundForms[3].projectTitle}
+                onChange={(e) => setRoundForms({ ...roundForms, 3: { ...roundForms[3], projectTitle: e.target.value } })}
+              />
+              <FormInput
+                label="Project Brief"
+                value={roundForms[3].projectBrief}
+                onChange={(e) => setRoundForms({ ...roundForms, 3: { ...roundForms[3], projectBrief: e.target.value } })}
+                type="textarea"
+                rows={6}
+              />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-semibold text-slate-700">Requirements</label>
+                  <Button variant="secondary" size="sm" onClick={() => addRequirement(3)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Requirement
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {roundForms[3].projectRequirements?.map((req, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <FormInput
+                        value={req}
+                        onChange={(e) => {
+                          const requirements = [...roundForms[3].projectRequirements]
+                          requirements[idx] = e.target.value
+                          setRoundForms({ ...roundForms, 3: { ...roundForms[3], projectRequirements: requirements } })
+                        }}
+                        placeholder={`Requirement ${idx + 1}`}
+                        className="flex-1"
+                      />
+                      <Button variant="secondary" size="sm" onClick={() => {
+                        const requirements = roundForms[3].projectRequirements.filter((_, i) => i !== idx)
+                        setRoundForms({ ...roundForms, 3: { ...roundForms[3], projectRequirements: requirements } })
+                      }}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button variant="primary" onClick={() => handleSaveRound(3)} loading={saving}>
+                Save Round 3
+              </Button>
+            </div>
+          )}
         </Card>
       </motion.div>
     </FacultyLayout>
@@ -267,4 +449,3 @@ const SkillBuilder = () => {
 }
 
 export default SkillBuilder
-

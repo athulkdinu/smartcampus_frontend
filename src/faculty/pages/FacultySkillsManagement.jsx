@@ -1,99 +1,96 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import toast from 'react-hot-toast'
 import FacultyLayout from '../../shared/layouts/FacultyLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
-import { Plus, BookOpen, Edit, Globe, FileText, Users, CheckCircle2, Eye } from 'lucide-react'
+import Modal from '../../shared/components/Modal'
+import FormInput from '../../shared/components/FormInput'
+import { Plus, BookOpen, Edit, Globe, FileText, Users, CheckCircle2, Eye, Trash2 } from 'lucide-react'
+import { getCoursesAPI, createCourseAPI, deleteCourseAPI, getCourseEnrollmentsAPI } from '../../services/skillCourseAPI'
 
 const FacultySkillsManagement = () => {
   const navigate = useNavigate()
-  const [skills, setSkills] = useState(() => {
-    // Load from localStorage or use empty array
-    const saved = localStorage.getItem('faculty_skills')
-    return saved ? JSON.parse(saved) : []
-  })
-
-  // Mock student enrollment data - in real app, this would come from backend
-  const [studentEnrollments] = useState(() => {
-    const saved = localStorage.getItem('skill_student_enrollments')
-    if (saved) return JSON.parse(saved)
-    
-    // Initialize with mock data
-    const mockData = {}
-    skills.forEach(skill => {
-      mockData[skill.id] = {
-        enrolled: Math.floor(Math.random() * 50) + 10,
-        completed: Math.floor(Math.random() * 20) + 2
-      }
-    })
-    localStorage.setItem('skill_student_enrollments', JSON.stringify(mockData))
-    return mockData
+  const [courses, setCourses] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [courseForm, setCourseForm] = useState({
+    title: '',
+    shortDesc: '',
+    longDesc: '',
+    category: 'General',
+    passThreshold: 60
   })
 
   useEffect(() => {
-    // Save to localStorage whenever skills change
-    localStorage.setItem('faculty_skills', JSON.stringify(skills))
-  }, [skills])
+    loadCourses()
+  }, [])
 
-  const handleCreateNew = () => {
-    const newSkill = {
-      id: Date.now().toString(),
-      title: 'New Skill',
-      status: 'Draft',
-      published: false,
-      rounds: [
-        {
-          roundNumber: 1,
-          title: 'Learning Video + Notes + Quiz',
-          type: 'Learning',
-          completed: false,
-          videoUrl: '',
-          notes: '',
-          questions: [],
-          requiredScore: 80
-        },
-        {
-          roundNumber: 2,
-          title: 'Practice Exercise',
-          type: 'Practice',
-          completed: false,
-          questions: [],
-          requiredScore: 80
-        },
-        {
-          roundNumber: 3,
-          title: 'Mini Project',
-          type: 'Project',
-          completed: false,
-          description: '',
-          requirements: []
-        },
-        {
-          roundNumber: 4,
-          title: 'Final Assessment Quiz',
-          type: 'Assessment',
-          completed: false,
-          questions: [],
-          requiredScore: 80
-        }
-      ],
-      createdAt: new Date().toISOString()
+  const loadCourses = async () => {
+    setLoading(true)
+    try {
+      const res = await getCoursesAPI({ mine: true })
+      if (res?.status === 200) {
+        setCourses(res.data.courses || [])
+      } else {
+        toast.error('Failed to load courses')
+      }
+    } catch (error) {
+      console.error('Error loading courses:', error)
+      toast.error('Failed to load courses')
+    } finally {
+      setLoading(false)
     }
-    setSkills([...skills, newSkill])
-    navigate(`/faculty/skills/${newSkill.id}`)
   }
 
-  const handleManage = (skillId) => {
-    navigate(`/faculty/skills/${skillId}`)
+  const handleCreateCourse = async (e) => {
+    e.preventDefault()
+    if (!courseForm.title.trim() || !courseForm.shortDesc.trim()) {
+      toast.error('Title and short description are required')
+      return
+    }
+
+    setCreating(true)
+    try {
+      const res = await createCourseAPI(courseForm)
+      if (res?.status === 201) {
+        toast.success('Course created successfully!')
+        setShowCreateModal(false)
+        setCourseForm({ title: '', shortDesc: '', longDesc: '', category: 'General', passThreshold: 60 })
+        await loadCourses()
+        navigate(`/faculty/skills/${res.data.course._id}`)
+      } else {
+        toast.error(res?.response?.data?.message || 'Failed to create course')
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to create course')
+    } finally {
+      setCreating(false)
+    }
   }
 
-  const handleViewProgress = (skillId) => {
-    navigate(`/faculty/skills/${skillId}/students`)
+  const handleDelete = async (courseId) => {
+    if (!confirm('Are you sure you want to delete this course? This will also delete all enrollments and submissions.')) {
+      return
+    }
+
+    try {
+      const res = await deleteCourseAPI(courseId)
+      if (res?.status === 200) {
+        toast.success('Course deleted')
+        await loadCourses()
+      } else {
+        toast.error('Failed to delete course')
+      }
+    } catch (error) {
+      toast.error('Failed to delete course')
+    }
   }
 
-  const getStatusBadge = (status, published) => {
-    if (published) {
+  const getStatusBadge = (status) => {
+    if (status === 'Published') {
       return (
         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200 flex items-center gap-1">
           <Globe className="w-3 h-3" />
@@ -109,10 +106,6 @@ const FacultySkillsManagement = () => {
     )
   }
 
-  const getEnrollmentStats = (skillId) => {
-    return studentEnrollments[skillId] || { enrolled: 0, completed: 0 }
-  }
-
   return (
     <FacultyLayout>
       <motion.div
@@ -123,101 +116,159 @@ const FacultySkillsManagement = () => {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Skills Management</h1>
-            <p className="text-slate-600">Create and manage learning skills for students</p>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Skill Development</h1>
+            <p className="text-slate-600">Create and manage skill courses with gated rounds</p>
           </div>
-          <Button variant="primary" onClick={handleCreateNew}>
+          <Button variant="primary" onClick={() => setShowCreateModal(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Create New Skill
+            Create New Course
           </Button>
         </div>
 
-        {/* Skills Grid */}
-        {skills.length === 0 ? (
+        {/* Courses Grid */}
+        {loading ? (
+          <Card>
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-slate-500">Loading courses...</p>
+            </div>
+          </Card>
+        ) : courses.length === 0 ? (
           <Card>
             <div className="text-center py-16">
               <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">No skills created yet</h3>
-              <p className="text-slate-500 mb-6">Get started by creating your first skill</p>
-              <Button variant="primary" onClick={handleCreateNew}>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">No courses created yet</h3>
+              <p className="text-slate-500 mb-6">Get started by creating your first skill course</p>
+              <Button variant="primary" onClick={() => setShowCreateModal(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Create Your First Skill
+                Create Your First Course
               </Button>
             </div>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {skills.map((skill, idx) => {
-              const stats = getEnrollmentStats(skill.id)
-              
-              return (
-                <motion.div
-                  key={skill.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                >
-                  <Card className="h-full flex flex-col">
-                    <div className="flex-1">
-                      {/* Skill Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <BookOpen className="w-5 h-5 text-blue-600" />
-                            <h3 className="text-lg font-bold text-slate-900">{skill.title}</h3>
-                          </div>
-                          {getStatusBadge(skill.status, skill.published)}
+            {courses.map((course, idx) => (
+              <motion.div
+                key={course._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+              >
+                <Card className="h-full flex flex-col">
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BookOpen className="w-5 h-5 text-blue-600" />
+                          <h3 className="text-lg font-bold text-slate-900">{course.title}</h3>
                         </div>
-                      </div>
-
-                      {/* Student Stats */}
-                      <div className="space-y-3 mb-4">
-                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-medium text-slate-700">Students Enrolled</span>
-                          </div>
-                          <span className="text-lg font-bold text-slate-900">{stats.enrolled}</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-medium text-slate-700">Students Completed</span>
-                          </div>
-                          <span className="text-lg font-bold text-slate-900">{stats.completed}</span>
-                        </div>
+                        {getStatusBadge(course.status)}
+                        <p className="text-sm text-slate-600 mt-2">{course.shortDesc}</p>
+                        <p className="text-xs text-slate-500 mt-1">Category: {course.category}</p>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-4 border-t border-slate-200">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleManage(skill.id)}
-                        className="flex-1 flex items-center justify-center gap-2"
-                      >
-                        <Edit className="w-4 h-4" />
-                        Edit
-                      </Button>
-                      {skill.published && stats.enrolled > 0 && (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleViewProgress(skill.id)}
-                          className="flex-1 flex items-center justify-center gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View Progress
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                </motion.div>
-              )
-            })}
+                  <div className="flex gap-2 pt-4 border-t border-slate-200">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => navigate(`/faculty/skills/${course._id}`)}
+                      className="flex-1 flex items-center justify-center gap-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => navigate(`/faculty/skills/${course._id}/students`)}
+                      className="flex-1 flex items-center justify-center gap-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Enrollments
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleDelete(course._id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
           </div>
         )}
+
+        {/* Create Course Modal */}
+        <Modal
+          isOpen={showCreateModal}
+          onClose={() => {
+            setShowCreateModal(false)
+            setCourseForm({ title: '', shortDesc: '', longDesc: '', category: 'General', passThreshold: 60 })
+          }}
+          title="Create New Course"
+          size="md"
+        >
+          <form onSubmit={handleCreateCourse} className="space-y-4">
+            <FormInput
+              label="Course Title"
+              placeholder="e.g., Python Programming Fundamentals"
+              value={courseForm.title}
+              onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+              required
+            />
+            <FormInput
+              label="Short Description"
+              placeholder="Brief one-line description"
+              value={courseForm.shortDesc}
+              onChange={(e) => setCourseForm({ ...courseForm, shortDesc: e.target.value })}
+              required
+            />
+            <FormInput
+              label="Long Description (Optional)"
+              placeholder="Detailed course description"
+              value={courseForm.longDesc}
+              onChange={(e) => setCourseForm({ ...courseForm, longDesc: e.target.value })}
+              type="textarea"
+              rows={3}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormInput
+                label="Category"
+                placeholder="e.g., Programming, Web Dev"
+                value={courseForm.category}
+                onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
+              />
+              <FormInput
+                label="Pass Threshold (%)"
+                type="number"
+                min="0"
+                max="100"
+                value={courseForm.passThreshold}
+                onChange={(e) => setCourseForm({ ...courseForm, passThreshold: parseInt(e.target.value) || 60 })}
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowCreateModal(false)
+                  setCourseForm({ title: '', shortDesc: '', longDesc: '', category: 'General', passThreshold: 60 })
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" loading={creating}>
+                Create Course
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </motion.div>
     </FacultyLayout>
   )

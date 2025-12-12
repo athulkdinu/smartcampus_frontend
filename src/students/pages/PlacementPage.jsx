@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import MainLayout from '../../shared/layouts/MainLayout'
 import Card from '../../shared/components/Card'
@@ -13,12 +13,16 @@ import {
   Trophy,
   Upload
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import {
-  placementDrives,
-  placementApplicationsSeed,
-  placementInterviewsSeed,
-  placementOffersSeed
-} from '../data/placementData'
+  applyJobAPI,
+  fetchJobsAPI,
+  fetchMyApplicationsAPI,
+  fetchMyInterviewsAPI,
+  fetchMyOffersAPI,
+  fetchMyResumeAPI,
+  uploadResumeAPI
+} from '../../services/placementAPI'
 
 const tabs = [
   { id: 'drives', label: 'Active Drives' },
@@ -30,16 +34,129 @@ const tabs = [
 
 const PlacementPage = () => {
   const [activeTab, setActiveTab] = useState('drives')
-  const [drives] = useState(placementDrives)
-  const [applications, setApplications] = useState(placementApplicationsSeed)
-  const [interviews] = useState(placementInterviewsSeed)
-  const [offers] = useState(placementOffersSeed)
-  const [resume, setResume] = useState({ fileName: null })
+  const [drives, setDrives] = useState([])
+  const [applications, setApplications] = useState([])
+  const [interviews, setInterviews] = useState([])
+  const [offers, setOffers] = useState([])
+  const [resume, setResume] = useState({ fileName: null, url: null, updatedAt: null })
   const [applicationDetail, setApplicationDetail] = useState(null)
   const [offerDetail, setOfferDetail] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : '-')
+  const formatTime = (value) =>
+    value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
+
+  const toastMessage = (res, fallback) =>
+    res?.response?.data?.message || res?.data?.message || fallback
+
+  const normalizeApplications = (items = []) =>
+    items.map(app => ({
+      id: app._id,
+      jobId: app.job?._id,
+      title: app.job?.title,
+      company: app.job?.company,
+      status: app.status,
+      lastUpdated: app.updatedAt
+        ? new Date(app.updatedAt).toLocaleString()
+        : 'Just now'
+    }))
+
+  const normalizeInterviews = (items = []) =>
+    items.map(int => ({
+      id: int._id,
+      title: int.job?.title,
+      company: int.job?.company,
+      mode: int.mode,
+      roundType: int.roundType,
+      date: formatDate(int.scheduledAt),
+      time: formatTime(int.scheduledAt),
+      status: int.status
+    }))
+
+  const normalizeOffers = (items = []) =>
+    items.map(off => ({
+      id: off._id,
+      jobId: off.job?._id,
+      title: off.job?.title,
+      company: off.job?.company,
+      ctc: off.ctc,
+      status: off.status,
+      offerLetterUrl: off.offerLetterUrl
+    }))
+
+  const loadData = async () => {
+    try {
+      setRefreshing(true)
+      const [jobsRes, appsRes, intRes, offersRes, resumeRes] = await Promise.all([
+        fetchJobsAPI({ status: 'Active' }),
+        fetchMyApplicationsAPI(),
+        fetchMyInterviewsAPI(),
+        fetchMyOffersAPI(),
+        fetchMyResumeAPI()
+      ])
+
+      if (jobsRes?.status === 200) {
+        const normalizedJobs =
+          jobsRes.data?.jobs?.map(job => ({
+            id: job._id,
+            title: job.title,
+            company: job.company,
+            location: job.location || job.mode || '',
+            mode: job.mode,
+            jobType: job.jobType,
+            status: job.status,
+            deadline: job.deadline
+          })) || []
+        setDrives(normalizedJobs)
+      } else {
+        toast.error(toastMessage(jobsRes, 'Unable to load jobs'))
+      }
+
+      if (appsRes?.status === 200) {
+        setApplications(normalizeApplications(appsRes.data?.applications || []))
+      } else {
+        toast.error(toastMessage(appsRes, 'Unable to load applications'))
+      }
+
+      if (intRes?.status === 200) {
+        setInterviews(normalizeInterviews(intRes.data?.interviews || []))
+      }
+
+      if (offersRes?.status === 200) {
+        setOffers(normalizeOffers(offersRes.data?.offers || []))
+      }
+
+      if (resumeRes?.status === 200) {
+        setResume({
+          fileName: resumeRes.data?.resumeOriginalName || null,
+          url: resumeRes.data?.resumeUrl || null,
+          updatedAt: resumeRes.data?.resumeUpdatedAt || null
+        })
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error('Unable to load placement data')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const refreshApplications = async () => {
+    const res = await fetchMyApplicationsAPI()
+    if (res?.status === 200) {
+      setApplications(normalizeApplications(res.data?.applications || []))
+    }
+  }
 
   const stats = useMemo(() => {
-    const activeDrivesCount = drives.filter(d => d.status === 'Open').length
+    const activeDrivesCount = drives.filter(d => d.status === 'Active').length
     const applicationsCount = applications.length
     const shortlistedCount = applications.filter(a =>
       ['Shortlisted', 'Interview Scheduled', 'Offered'].includes(a.status)
@@ -57,28 +174,54 @@ const PlacementPage = () => {
   }, [drives, applications, interviews, offers])
 
   const handleApply = (drive) => {
-    const alreadyApplied = applications.some(app => app.jobId === drive.id)
-    if (alreadyApplied) {
-      setActiveTab('applications')
-      return
+    const applyNow = async () => {
+      const alreadyApplied = applications.some(app => app.jobId === drive.id)
+      if (alreadyApplied) {
+        setActiveTab('applications')
+        return
+      }
+
+      const formData = new FormData()
+      const res = await applyJobAPI(drive.id, formData)
+      if (res?.status === 201) {
+        toast.success('Application submitted')
+        refreshApplications()
+        setActiveTab('applications')
+      } else {
+        toast.error(toastMessage(res, 'Unable to apply'))
+      }
     }
 
-    const newApplication = {
-      id: `APP-${Math.floor(Math.random() * 9000 + 1000)}`,
-      jobId: drive.id,
-      title: drive.title,
-      company: drive.company,
-      status: 'Applied',
-      lastUpdated: 'Just now'
-    }
-    setApplications(prev => [newApplication, ...prev])
-    setActiveTab('applications')
+    applyNow()
   }
 
   const handleResumeUpload = (event) => {
     const file = event.target.files?.[0]
     if (!file) return
-    setResume({ fileName: file.name })
+    const upload = async () => {
+      const formData = new FormData()
+      formData.append('resume', file)
+      const res = await uploadResumeAPI(formData)
+      if (res?.status === 200) {
+        setResume({
+          fileName: res.data.resumeOriginalName || file.name,
+          url: res.data.resumeUrl,
+          updatedAt: res.data.resumeUpdatedAt
+        })
+        toast.success('Resume uploaded')
+      } else {
+        toast.error(toastMessage(res, 'Unable to upload resume'))
+      }
+    }
+    upload()
+  }
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="p-6 text-sm text-slate-600">Loading placement data...</div>
+      </MainLayout>
+    )
   }
 
   return (
@@ -95,6 +238,16 @@ const PlacementPage = () => {
             <p className="text-slate-600">
               Track drives, applications, interviews, and offers in one place.
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={loadData}
+              disabled={refreshing}
+            >
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
           </div>
         </div>
 
@@ -206,9 +359,11 @@ const PlacementPage = () => {
                       </div>
                       <p className="text-sm text-slate-600 mb-1">{drive.location}</p>
                       <p className="text-xs text-slate-500 mb-2">
-                        Last date to apply: <span className="font-medium">{drive.lastDateToApply}</span>
+                        Last date to apply: <span className="font-medium">{formatDate(drive.deadline)}</span>
                       </p>
-                      <p className="text-xs text-slate-500 mb-4">{drive.eligibilitySummary}</p>
+                      <p className="text-xs text-slate-500 mb-4">
+                        {drive.jobType || 'Role'} · {drive.mode || 'Mode TBA'}
+                      </p>
                       <div className="flex gap-2">
                         <Button
                           variant="primary"
@@ -224,6 +379,11 @@ const PlacementPage = () => {
                       </div>
                     </motion.div>
                   ))}
+                  {drives.length === 0 && (
+                    <p className="text-sm text-slate-500">
+                      No active drives right now. Check back soon.
+                    </p>
+                  )}
                 </div>
               </Card>
             )}
@@ -254,11 +414,11 @@ const PlacementPage = () => {
                           <td className="py-3 pr-4">
                             <span
                               className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                app.status === 'Applied'
+                                app.status === 'Pending'
                                   ? 'bg-amber-50 text-amber-700'
                                   : app.status === 'Shortlisted'
                                   ? 'bg-emerald-50 text-emerald-700'
-                                  : app.status === 'Interview Scheduled' || app.status === 'Under Review'
+                                  : app.status === 'Interview Scheduled'
                                   ? 'bg-indigo-50 text-indigo-700'
                                   : app.status === 'Offered'
                                   ? 'bg-purple-50 text-purple-700'

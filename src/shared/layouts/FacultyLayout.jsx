@@ -57,8 +57,8 @@ const FacultyLayout = ({ children }) => {
         { icon: FileText, label: 'Assignments', path: '/faculty/assignments' },
         { icon: ClipboardList, label: 'Grading', path: '/faculty/grading' },
         { icon: Calendar, label: 'Attendance', path: '/faculty/attendance' },
+        { icon: CalendarCheck, label: 'Timetable', path: '/faculty/timetable' },
         { icon: Award, label: 'Skills Development', path: '/faculty/skills' },
-        { icon: Award, label: 'Skill Verification', path: '/faculty/skill-verification' },
       ]
     },
     {

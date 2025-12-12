@@ -1,70 +1,27 @@
-import SERVERURL from "./serverURL";
-import commonAPI from "./commonAPI";
+import api from "./api";
 
 // POST /api/skills - Submit a skill (Student only)
-export const submitSkillAPI = async (data) => {
-  const token = sessionStorage.getItem("token");
-  return await commonAPI(
-    "POST",
-    `${SERVERURL}/api/skills`,
-    data,
-    {
-      "Content-Type": "application/json",
-      Authorization: token ? `Bearer ${token}` : "",
-    }
-  );
+export const submitSkillAPI = (data) => {
+  return api.post("/api/skills", data);
 };
 
 // GET /api/skills/mine - Get my skills (Student only)
-export const getMySkillsAPI = async () => {
-  const token = sessionStorage.getItem("token");
-  return await commonAPI(
-    "GET",
-    `${SERVERURL}/api/skills/mine`,
-    null,
-    {
-      Authorization: token ? `Bearer ${token}` : "",
-    }
-  );
+export const getMySkillsAPI = () => {
+  return api.get("/api/skills/mine");
 };
 
 // GET /api/skills - Get skills for faculty (Faculty only)
-export const getSkillsForFacultyAPI = async () => {
-  const token = sessionStorage.getItem("token");
-  return await commonAPI(
-    "GET",
-    `${SERVERURL}/api/skills`,
-    null,
-    {
-      Authorization: token ? `Bearer ${token}` : "",
-    }
-  );
+export const getSkillsForFacultyAPI = () => {
+  return api.get("/api/skills");
 };
 
 // PATCH /api/skills/:id/approve - Approve a skill (Faculty only)
-export const approveSkillAPI = async (skillId) => {
-  const token = sessionStorage.getItem("token");
-  return await commonAPI(
-    "PATCH",
-    `${SERVERURL}/api/skills/${skillId}/approve`,
-    null,
-    {
-      Authorization: token ? `Bearer ${token}` : "",
-    }
-  );
+export const approveSkillAPI = (skillId) => {
+  return api.patch(`/api/skills/${skillId}/approve`);
 };
 
 // PATCH /api/skills/:id/reject - Reject a skill (Faculty only)
-export const rejectSkillAPI = async (skillId, remarks) => {
-  const token = sessionStorage.getItem("token");
-  return await commonAPI(
-    "PATCH",
-    `${SERVERURL}/api/skills/${skillId}/reject`,
-    { remarks },
-    {
-      "Content-Type": "application/json",
-      Authorization: token ? `Bearer ${token}` : "",
-    }
-  );
+export const rejectSkillAPI = (skillId, remarks) => {
+  return api.patch(`/api/skills/${skillId}/reject`, { remarks });
 };
 

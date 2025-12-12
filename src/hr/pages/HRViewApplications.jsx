@@ -1,23 +1,53 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import HRLayout from '../../shared/layouts/HRLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import Modal from '../../shared/components/Modal'
-import { hrApplications, hrJobOpenings, applicationStatuses } from '../data/hrDemoData'
 import { Eye, CheckCircle2, XCircle, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
+import {
+  fetchAllApplicationsForHrAPI,
+  updateApplicationStatusAPI
+} from '../../services/placementAPI'
+
+const applicationStatuses = ['Pending', 'Shortlisted', 'Interview Scheduled', 'Offered', 'Rejected']
 
 const HRViewApplications = () => {
-  const [applications, setApplications] = useState(hrApplications)
+  const [applications, setApplications] = useState([])
   const [statusFilter, setStatusFilter] = useState('All')
   const [selectedProfile, setSelectedProfile] = useState(null)
-  const jobMap = useMemo(() => Object.fromEntries(hrJobOpenings.map(job => [job.id, job.title])), [])
+  const [loading, setLoading] = useState(true)
+
+  const jobMap = useMemo(
+    () => Object.fromEntries(applications.map(app => [app.job?._id, app.job?.title])),
+    [applications]
+  )
+
+  const loadApplications = async () => {
+    setLoading(true)
+    const res = await fetchAllApplicationsForHrAPI()
+    if (res?.status === 200) {
+      setApplications(res.data.applications || [])
+    } else {
+      toast.error(res?.response?.data?.message || 'Unable to load applications')
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadApplications()
+  }, [])
 
   const filteredApplications = applications.filter(app => statusFilter === 'All' || app.status === statusFilter)
 
-  const updateStatus = (id, status) => {
-    setApplications(prev => prev.map(app => app.id === id ? { ...app, status } : app))
-    toast.success(`Application ${status}`)
+  const updateStatus = async (id, status) => {
+    const res = await updateApplicationStatusAPI(id, status)
+    if (res?.status === 200) {
+      toast.success(`Application ${status}`)
+      setApplications(prev => prev.map(app => app._id === id ? { ...app, status } : app))
+    } else {
+      toast.error(res?.response?.data?.message || 'Unable to update status')
+    }
   }
 
   return (
@@ -38,6 +68,9 @@ const HRViewApplications = () => {
                 </button>
               ))}
             </div>
+            <Button size="sm" variant="secondary" onClick={loadApplications}>
+              Refresh
+            </Button>
           </div>
 
           <div className="overflow-x-auto">
@@ -45,25 +78,30 @@ const HRViewApplications = () => {
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200">
                   <th className="py-3">Student</th>
-                  <th className="py-3">Course / Dept</th>
+                  <th className="py-3">Department</th>
                   <th className="py-3">Job</th>
-                  <th className="py-3">Skills</th>
                   <th className="py-3">Status</th>
                   <th className="py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredApplications.map(app => (
-                  <tr key={app.id} className="border-b border-slate-100">
-                    <td className="py-3">
-                      <p className="font-semibold text-slate-900">{app.studentName}</p>
-                      <p className="text-xs text-slate-500">{app.id}</p>
+                {loading && (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-slate-500">
+                      Loading applications...
                     </td>
-                    <td className="py-3">{app.course} · {app.department}</td>
+                  </tr>
+                )}
+                {!loading && filteredApplications.map(app => (
+                  <tr key={app._id} className="border-b border-slate-100">
                     <td className="py-3">
-                      <p className="text-slate-900">{jobMap[app.jobId]}</p>
+                      <p className="font-semibold text-slate-900">{app.student?.name}</p>
+                      <p className="text-xs text-slate-500">{app.student?.email}</p>
                     </td>
-                    <td className="py-3 text-slate-500">{app.skills.join(', ')}</td>
+                    <td className="py-3">{app.student?.department || '—'}</td>
+                    <td className="py-3">
+                      <p className="text-slate-900">{jobMap[app.job?._id]}</p>
+                    </td>
                     <td className="py-3">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         app.status === 'Pending' ? 'bg-amber-50 text-amber-700' :
@@ -80,13 +118,13 @@ const HRViewApplications = () => {
                         <button className="p-1.5 rounded-lg hover:bg-indigo-50" title="View Profile" onClick={() => setSelectedProfile(app)}>
                           <Eye className="w-4 h-4 text-indigo-500" />
                         </button>
-                        <button className="p-1.5 rounded-lg hover:bg-emerald-50" title="Shortlist" onClick={() => updateStatus(app.id, 'Shortlisted')}>
+                        <button className="p-1.5 rounded-lg hover:bg-emerald-50" title="Shortlist" onClick={() => updateStatus(app._id, 'Shortlisted')}>
                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         </button>
-                        <button className="p-1.5 rounded-lg hover:bg-blue-50" title="Schedule Interview" onClick={() => updateStatus(app.id, 'Interview Scheduled')}>
+                        <button className="p-1.5 rounded-lg hover:bg-blue-50" title="Schedule Interview" onClick={() => updateStatus(app._id, 'Interview Scheduled')}>
                           <Calendar className="w-4 h-4 text-blue-500" />
                         </button>
-                        <button className="p-1.5 rounded-lg hover:bg-rose-50" title="Reject" onClick={() => updateStatus(app.id, 'Rejected')}>
+                        <button className="p-1.5 rounded-lg hover:bg-rose-50" title="Reject" onClick={() => updateStatus(app._id, 'Rejected')}>
                           <XCircle className="w-4 h-4 text-rose-500" />
                         </button>
                       </div>
@@ -95,7 +133,7 @@ const HRViewApplications = () => {
                 ))}
               </tbody>
             </table>
-            {filteredApplications.length === 0 && (
+            {!loading && filteredApplications.length === 0 && (
               <div className="text-center py-12 text-slate-500">No applications under this filter.</div>
             )}
           </div>
@@ -106,30 +144,16 @@ const HRViewApplications = () => {
         {selectedProfile && (
           <div className="space-y-4 text-sm text-slate-600">
             <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">{selectedProfile.department}</p>
-              <h3 className="text-2xl font-bold text-slate-900">{selectedProfile.studentName}</h3>
-              <p>GPA {selectedProfile.gpa} · {selectedProfile.experience}</p>
-              <a href={selectedProfile.resume} className="text-indigo-600 text-xs" target="_blank" rel="noreferrer">View resume</a>
+              <p className="text-xs uppercase tracking-wide text-slate-400">{selectedProfile.student?.department}</p>
+              <h3 className="text-2xl font-bold text-slate-900">{selectedProfile.student?.name}</h3>
+              <p>{selectedProfile.student?.email}</p>
+              {selectedProfile.resumeUrl && (
+                <a href={selectedProfile.resumeUrl} className="text-indigo-600 text-xs" target="_blank" rel="noreferrer">View resume</a>
+              )}
             </div>
             <div>
-              <p className="font-semibold text-slate-900">Skills</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {selectedProfile.skills.map(skill => (
-                  <span key={skill} className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">{skill}</span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900">Certifications</p>
-              <p>{selectedProfile.certifications.join(', ') || '—'}</p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900">Projects</p>
-              <ul className="list-disc list-inside">
-                {selectedProfile.projects.map(project => (
-                  <li key={project}>{project}</li>
-                ))}
-              </ul>
+              <p className="font-semibold text-slate-900">Status</p>
+              <p>{selectedProfile.status}</p>
             </div>
           </div>
         )}
