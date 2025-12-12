@@ -499,53 +499,6 @@ const StudentDashboard = () => {
               </Card>
             </motion.div>
 
-            {/* Attendance Summary */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-green-600" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900">Attendance Summary</h3>
-                </div>
-                {loadingAttendance ? (
-                  <div className="text-sm text-slate-500 py-8 text-center">Loading...</div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-                      <div className="text-4xl font-bold text-slate-900 mb-2">{attendanceSummary.percentage}%</div>
-                      <div className="text-sm text-slate-600">Overall Attendance</div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="text-center p-3 bg-slate-50 rounded-lg">
-                        <div className="text-lg font-bold text-slate-900">{attendanceSummary.presentCount}</div>
-                        <div className="text-xs text-slate-600">Present</div>
-                      </div>
-                      <div className="text-center p-3 bg-slate-50 rounded-lg">
-                        <div className="text-lg font-bold text-slate-900">{attendanceSummary.absentCount}</div>
-                        <div className="text-xs text-slate-600">Absent</div>
-                      </div>
-                      <div className="text-center p-3 bg-slate-50 rounded-lg">
-                        <div className="text-lg font-bold text-slate-900">{attendanceSummary.lateCount}</div>
-                        <div className="text-xs text-slate-600">Late</div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="primary"
-                      className="w-full"
-                      onClick={() => navigate('/student/academic/attendance')}
-                    >
-                      View Full Report
-                    </Button>
-                  </div>
-                )}
-              </Card>
-            </motion.div>
-
             {/* Announcements Panel */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
