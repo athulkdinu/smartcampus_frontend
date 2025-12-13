@@ -177,18 +177,28 @@ const PlacementPage = () => {
     const applyNow = async () => {
       const alreadyApplied = applications.some(app => app.jobId === drive.id)
       if (alreadyApplied) {
+        toast.info('You have already applied to this job')
         setActiveTab('applications')
         return
       }
 
+      // Check if student has a resume uploaded
+      if (!resume.url) {
+        toast.error('Please upload your resume first before applying to jobs')
+        setActiveTab('resume')
+        return
+      }
+
+      // Send empty FormData - backend will use existing resume from student profile
       const formData = new FormData()
       const res = await applyJobAPI(drive.id, formData)
       if (res?.status === 201) {
-        toast.success('Application submitted')
+        toast.success('Application submitted successfully')
         refreshApplications()
         setActiveTab('applications')
       } else {
-        toast.error(toastMessage(res, 'Unable to apply'))
+        const errorMsg = res?.response?.data?.message || 'Unable to apply'
+        toast.error(errorMsg)
       }
     }
 
