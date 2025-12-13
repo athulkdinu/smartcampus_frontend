@@ -22,52 +22,17 @@ const FacultyNotifications = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2">
-            <h2 className="text-xl font-bold text-slate-900 mb-6">Recent events</h2>
-            <div className="space-y-4">
-              {timeline.map((item, idx) => (
-                <motion.div
-                  key={item.title}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="p-4 rounded-2xl border border-slate-200 flex items-center gap-3"
-                >
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-                    <Bell className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">{item.title}</p>
-                    <p className="text-sm text-slate-500">{item.time}</p>
-                  </div>
-                </motion.div>
-              ))}
+        <Card>
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Bell className="w-10 h-10 text-slate-400" />
             </div>
-          </Card>
-
-          <div className="space-y-4">
-            <Card>
-              <div className="flex items-center gap-3">
-                <CalendarCheck2 className="w-5 h-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-slate-500">Upcoming</p>
-                  <p className="text-lg font-semibold text-slate-900">2 calendar events</p>
-                  <p className="text-xs text-slate-500">Exam board review · Project demo</p>
-                </div>
-              </div>
-            </Card>
-            <Card className="bg-rose-50 border-rose-100">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-rose-600" />
-                <div>
-                  <p className="text-sm font-semibold text-rose-700">Action required</p>
-                  <p className="text-sm text-rose-600">2 leave requests waiting for faculty recommendation.</p>
-                </div>
-              </div>
-            </Card>
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">No notifications available</h2>
+            <p className="text-slate-500 text-sm">
+              Notifications will appear here when there are updates related to your classes and activities.
+            </p>
           </div>
-        </div>
+        </Card>
       </div>
     </FacultyLayout>
   )
