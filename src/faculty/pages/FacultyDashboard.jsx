@@ -16,16 +16,19 @@ import {
   GraduationCap,
   ArrowRight
 } from 'lucide-react'
-import { getFacultyClassesAPI } from '../../services/attendanceAPI'
-import { getFacultyAssignmentsAPI } from '../../services/assignmentAPI'
-import { getFacultyLeaveRequestsAPI } from '../../services/api'
+import { getFacultyDashboardSummaryAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
 const FacultyDashboard = () => {
   const navigate = useNavigate()
-  const [facultyClasses, setFacultyClasses] = useState([])
-  const [activeAssignments, setActiveAssignments] = useState(0)
-  const [pendingLeaveRequests, setPendingLeaveRequests] = useState(0)
+  const [dashboardData, setDashboardData] = useState({
+    assignedClasses: 0,
+    subjectsHandled: 0,
+    totalAssignments: 0,
+    pendingGrading: 0,
+    todayClasses: 0,
+    recentActivities: []
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -35,32 +38,40 @@ const FacultyDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      
-      // Load classes
-      const classesRes = await getFacultyClassesAPI()
-      if (classesRes?.status === 200) {
-        setFacultyClasses(classesRes.data.classes || [])
-      }
-
-      // Load assignments
-      const assignmentsRes = await getFacultyAssignmentsAPI()
-      if (assignmentsRes?.status === 200) {
-        const published = (assignmentsRes.data.assignments || []).filter(a => a.status === 'Published')
-        setActiveAssignments(published.length)
-      }
-
-      // Load leave requests
-      try {
-        const leaveRes = await getFacultyLeaveRequestsAPI()
-        if (leaveRes?.status === 200) {
-          const pending = (leaveRes.data.leaveRequests || []).filter(l => l.status === 'pending')
-          setPendingLeaveRequests(pending.length)
-        }
-      } catch {
-        // Silently fail if leave API not available
+      const res = await getFacultyDashboardSummaryAPI()
+      if (res?.status === 200) {
+        setDashboardData({
+          assignedClasses: res.data.assignedClasses || 0,
+          subjectsHandled: res.data.subjectsHandled || 0,
+          totalAssignments: res.data.totalAssignments || 0,
+          pendingGrading: res.data.pendingGrading || 0,
+          todayClasses: res.data.todayClasses || 0,
+          recentActivities: res.data.recentActivities || []
+        })
+      } else {
+        // Set all to 0 if API fails
+        setDashboardData({
+          assignedClasses: 0,
+          subjectsHandled: 0,
+          totalAssignments: 0,
+          pendingGrading: 0,
+          todayClasses: 0,
+          recentActivities: []
+        })
+        toast.error('Failed to load dashboard data')
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error)
+      // Set all to 0 on error
+      setDashboardData({
+        assignedClasses: 0,
+        subjectsHandled: 0,
+        totalAssignments: 0,
+        pendingGrading: 0,
+        todayClasses: 0,
+        recentActivities: []
+      })
+      toast.error('Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
@@ -70,31 +81,31 @@ const FacultyDashboard = () => {
   const summaryCards = [
     {
       label: 'Total Classes',
-      value: loading ? '...' : facultyClasses.length,
+      value: loading ? '...' : dashboardData.assignedClasses,
       icon: GraduationCap,
       color: 'from-blue-500 to-blue-600',
       onClick: () => navigate('/faculty/students')
     },
     {
       label: 'Active Assignments',
-      value: loading ? '...' : activeAssignments,
+      value: loading ? '...' : dashboardData.totalAssignments,
       icon: FileText,
       color: 'from-indigo-500 to-indigo-600',
       onClick: () => navigate('/faculty/assignments')
     },
     {
       label: 'Pending Grading',
-      value: '0', // TODO: Connect to grading API when available
+      value: loading ? '...' : dashboardData.pendingGrading,
       icon: ClipboardList,
       color: 'from-orange-500 to-orange-600',
       onClick: () => navigate('/faculty/grading')
     },
     {
-      label: 'Pending Leave Requests',
-      value: loading ? '...' : pendingLeaveRequests,
+      label: 'Today\'s Classes',
+      value: loading ? '...' : dashboardData.todayClasses,
       icon: CalendarCheck,
       color: 'from-rose-500 to-rose-600',
-      onClick: () => navigate('/faculty/leave-requests')
+      onClick: () => navigate('/faculty/attendance')
     }
   ]
 
@@ -142,13 +153,6 @@ const FacultyDashboard = () => {
       path: '/faculty/complaints',
       color: 'amber'
     }
-  ]
-
-  // Recent Activity (placeholder - can be connected to real data later)
-  const recentActivities = [
-    { type: 'assignment', text: 'New assignment submission received', time: '2 hours ago', path: '/faculty/assignments' },
-    { type: 'leave', text: 'Leave request from student', time: '5 hours ago', path: '/faculty/leave-requests' },
-    { type: 'event', text: 'Event proposal needs review', time: '1 day ago', path: '/faculty/event-requests' },
   ]
 
   return (
@@ -236,10 +240,12 @@ const FacultyDashboard = () => {
             </Button>
           </div>
           <div className="space-y-3">
-            {recentActivities.length === 0 ? (
+            {loading ? (
+              <p className="text-sm text-slate-500 text-center py-4">Loading activities...</p>
+            ) : dashboardData.recentActivities.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-4">No recent activity</p>
             ) : (
-              recentActivities.map((activity, idx) => (
+              dashboardData.recentActivities.map((activity, idx) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, x: -10 }}

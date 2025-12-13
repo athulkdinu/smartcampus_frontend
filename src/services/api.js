@@ -111,6 +111,11 @@ export const getStudentDashboardSummaryAPI = () => {
   return api.get("/api/student/dashboard-summary");
 };
 
+// GET /api/faculty/dashboard-summary - Get faculty dashboard summary statistics
+export const getFacultyDashboardSummaryAPI = () => {
+  return api.get("/api/faculty/dashboard-summary");
+};
+
 export const getFacultyLeaveRequestsAPI = () => {
   return api.get("/api/leaves/faculty");
 };
