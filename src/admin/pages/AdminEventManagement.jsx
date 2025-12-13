@@ -5,7 +5,6 @@ import AdminLayout from '../../shared/layouts/AdminLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import { Calendar, CheckCircle2, XCircle, Sparkles, User } from 'lucide-react'
-import { eventProposals as demoEventProposals } from '../../shared/data/workflowData'
 import { createEventAPI, getAdminEventsAPI, updateEventStatusAPI } from '../../services/api'
 
 const AdminEventManagement = () => {
@@ -34,16 +33,29 @@ const AdminEventManagement = () => {
     }
   }, [events])
 
-  const updateEventStatus = async (id, status) => {
+  const updateEventStatus = async (id, action) => {
     try {
-      const response = await updateEventStatusAPI(id, status)
+      const response = await updateEventStatusAPI(id, action)
       if (response?.status === 200) {
-        setEvents(prev =>
-          prev.map(event =>
-            event.id === id || event._id === id ? { ...event, status } : event
-          )
-        )
-        toast.success(`Event ${status}`)
+        // Reload events to get updated status
+        const res = await getAdminEventsAPI()
+        if (res?.status === 200) {
+          const backendEvents = (res.data.events || []).map(ev => ({
+            id: ev._id,
+            title: ev.title,
+            description: ev.description,
+            date: ev.date,
+            time: ev.time,
+            section: ev.section,
+            facultyInCharge: ev.facultyInCharge,
+            status: ev.status,
+            origin: ev.origin,
+            submittedBy: ev.submittedByName,
+            forwardedToAdmin: ev.forwardedToAdmin,
+          }))
+          setEvents(backendEvents)
+        }
+        toast.success(`Event ${action} successfully`)
       } else {
         const message = response?.response?.data?.message || 'Update failed'
         toast.error(message)
@@ -74,10 +86,11 @@ const AdminEventManagement = () => {
           }))
           setEvents(backendEvents)
         } else {
-          setEvents(demoEventProposals.filter(e => e.forwardedToAdmin))
+          setEvents([])
         }
-      } catch {
-        setEvents(demoEventProposals.filter(e => e.forwardedToAdmin))
+      } catch (error) {
+        console.error('Error loading events:', error)
+        setEvents([])
       }
     }
 

@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { 
   Calendar, 
-  TrendingUp, 
   BookOpen, 
   Briefcase, 
   Clock, 
@@ -23,6 +22,7 @@ import { getStudentAttendanceSummaryAPI } from '../../services/attendanceAPI'
 import { getTodayClassesAPI, getTimetableAPI } from '../../services/timetableAPI'
 import { getStudentAnnouncementsAPI } from '../../services/announcementAPI'
 import { getUpcomingDeadlinesAPI } from '../../services/assignmentAPI'
+import { getStudentDashboardSummaryAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
 const StudentDashboard = () => {
@@ -47,6 +47,14 @@ const StudentDashboard = () => {
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true)
   const [upcomingDeadlines, setUpcomingDeadlines] = useState([])
   const [loadingDeadlines, setLoadingDeadlines] = useState(true)
+  const [dashboardStats, setDashboardStats] = useState({
+    attendancePercentage: 0,
+    skillsCompleted: 0,
+    placementsApplied: 0,
+    pendingAssignments: 0,
+    leaveApproved: 0
+  })
+  const [loadingStats, setLoadingStats] = useState(true)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -60,6 +68,7 @@ const StudentDashboard = () => {
     loadTodayClasses()
     loadAnnouncements()
     loadUpcomingDeadlines()
+    loadDashboardSummary()
   }, [])
 
   const loadAttendanceSummary = async () => {
@@ -152,13 +161,13 @@ const StudentDashboard = () => {
     }
   }
 
+  // Use real data from API, fallback to attendance summary for attendance
   const stats = {
-    attendance: attendanceSummary.percentage,
-    grades: 3.8,
-    skillsCompleted: 12,
-    placementsApplied: 5,
-    assignmentsPending: 3,
-    upcomingExams: 2
+    attendance: dashboardStats.attendancePercentage || attendanceSummary.percentage,
+    skillsCompleted: dashboardStats.skillsCompleted,
+    placementsApplied: dashboardStats.placementsApplied,
+    assignmentsPending: dashboardStats.pendingAssignments,
+    leaveApproved: dashboardStats.leaveApproved
   }
 
   const loadAnnouncements = async () => {
@@ -223,29 +232,55 @@ const StudentDashboard = () => {
     }
   }
 
+  const loadDashboardSummary = async () => {
+    try {
+      setLoadingStats(true)
+      const res = await getStudentDashboardSummaryAPI()
+      if (res?.status === 200) {
+        setDashboardStats({
+          attendancePercentage: res.data.attendancePercentage || 0,
+          skillsCompleted: res.data.skillsCompleted || 0,
+          placementsApplied: res.data.placementsApplied || 0,
+          pendingAssignments: res.data.pendingAssignments || 0,
+          leaveApproved: res.data.leaveApproved || 0
+        })
+      } else {
+        // Set all to 0 if API fails
+        setDashboardStats({
+          attendancePercentage: 0,
+          skillsCompleted: 0,
+          placementsApplied: 0,
+          pendingAssignments: 0,
+          leaveApproved: 0
+        })
+      }
+    } catch (error) {
+      console.error('Error loading dashboard summary:', error)
+      // Set all to 0 on error
+      setDashboardStats({
+        attendancePercentage: 0,
+        skillsCompleted: 0,
+        placementsApplied: 0,
+        pendingAssignments: 0,
+        leaveApproved: 0
+      })
+    } finally {
+      setLoadingStats(false)
+    }
+  }
+
   const statCards = [
     {
       label: 'Attendance',
-      value: `${stats.attendance}%`,
-      trend: '+2%',
+      value: loadingStats ? '...' : `${stats.attendance}%`,
       icon: Calendar,
       color: 'from-blue-500 to-blue-600',
       bgColor: 'bg-blue-50',
       onClick: () => navigate('/student/academic/attendance')
     },
     {
-      label: 'GPA',
-      value: stats.grades,
-      trend: '+0.2',
-      icon: TrendingUp,
-      color: 'from-slate-700 to-slate-800',
-      bgColor: 'bg-slate-50',
-      onClick: () => navigate('/student/academic/grades')
-    },
-    {
       label: 'Skills Completed',
-      value: stats.skillsCompleted,
-      trend: '+3',
+      value: loadingStats ? '...' : stats.skillsCompleted,
       icon: BookOpen,
       color: 'from-indigo-500 to-indigo-600',
       bgColor: 'bg-indigo-50',
@@ -253,12 +288,19 @@ const StudentDashboard = () => {
     },
     {
       label: 'Placements Applied',
-      value: stats.placementsApplied,
-      trend: '+1',
+      value: loadingStats ? '...' : stats.placementsApplied,
       icon: Briefcase,
       color: 'from-purple-500 to-purple-600',
       bgColor: 'bg-purple-50',
       onClick: () => navigate('/student/placement')
+    },
+    {
+      label: 'Pending Assignments',
+      value: loadingStats ? '...' : stats.assignmentsPending,
+      icon: Clock,
+      color: 'from-amber-500 to-amber-600',
+      bgColor: 'bg-amber-50',
+      onClick: () => navigate('/student/academic/assignments')
     }
   ]
 
@@ -307,11 +349,7 @@ const StudentDashboard = () => {
                       <Icon className="w-8 h-8 text-white" />
                     </div>
                     <div className="text-right">
-                      <div className="text-3xl font-bold text-slate-900 mb-1">{stat.value}</div>
-                      <div className="text-xs text-green-600 font-semibold flex items-center justify-end gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        {stat.trend}
-                      </div>
+                      <div className="text-3xl font-bold text-slate-900">{stat.value}</div>
                     </div>
                   </div>
                   <div className="mt-4">

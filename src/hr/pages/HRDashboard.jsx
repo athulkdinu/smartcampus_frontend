@@ -46,13 +46,13 @@ const HRDashboard = () => {
       label: 'Active Job Postings',
       value: loading ? '...' : stats.activeJobs,
       icon: Briefcase,
-      accent: 'from-sky-500 to-blue-500'
+      accent: 'from-sky-900 to-blue-500'
     },
     {
       label: 'Total Applications',
       value: loading ? '...' : stats.totalApplications,
       icon: FileText,
-      accent: 'from-fuchsia-500 to-pink-500'
+      accent: 'from-fuchsia-900 to-pink-500'
     },
     {
       label: 'Interviews Scheduled',
@@ -103,7 +103,7 @@ const HRDashboard = () => {
                       <Icon className="w-7 h-7 text-white" />
                     </div>
                     <p className="text-xs uppercase tracking-wide text-slate-300 font-semibold">{stat.label}</p>
-                    <p className="text-4xl font-bold text-white">{stat.value}</p>
+                    <p className="text-4xl  font-bold text-black">{stat.value}</p>
                   </div>
                 </Card>
               </motion.div>

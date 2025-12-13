@@ -39,6 +39,10 @@ export const getStudentProposalsAPI = () => {
   return api.get("/api/events/student/proposals");
 };
 
+export const getStudentEventsAPI = () => {
+  return api.get("/api/events/my-events");
+};
+
 export const getFacultyRequestsAPI = () => {
   return api.get("/api/events/faculty/requests");
 };
@@ -100,6 +104,11 @@ export const createLeaveRequestAPI = (formData) => {
 
 export const getStudentLeaveRequestsAPI = () => {
   return api.get("/api/leaves/student");
+};
+
+// GET /api/student/dashboard-summary - Get student dashboard summary statistics
+export const getStudentDashboardSummaryAPI = () => {
+  return api.get("/api/student/dashboard-summary");
 };
 
 export const getFacultyLeaveRequestsAPI = () => {
