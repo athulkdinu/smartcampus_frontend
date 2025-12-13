@@ -64,7 +64,6 @@ const HRJobPostings = () => {
     })
     if (res?.status === 201) {
       toast.success(`${form.title} saved`)
-      setJobs(prev => [res.data.job, ...prev])
       setForm({
         title: '',
         company: '',
@@ -75,6 +74,8 @@ const HRJobPostings = () => {
         description: '',
         status: 'Draft'
       })
+      // Refresh jobs list to ensure consistency
+      await loadJobs()
     } else {
       toast.error(res?.response?.data?.message || 'Unable to save job')
     }

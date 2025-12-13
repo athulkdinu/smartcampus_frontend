@@ -17,6 +17,13 @@ const HRDashboard = () => {
 
   useEffect(() => {
     loadDashboardData()
+    
+    // Refresh data when page regains focus (e.g., navigating back from other pages)
+    const handleFocus = () => {
+      loadDashboardData()
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
   const loadDashboardData = async () => {
@@ -103,7 +110,7 @@ const HRDashboard = () => {
                       <Icon className="w-7 h-7 text-white" />
                     </div>
                     <p className="text-xs uppercase tracking-wide text-slate-300 font-semibold">{stat.label}</p>
-                    <p className="text-4xl  font-bold text-black">{stat.value}</p>
+                    <p className="text-4xl font-bold text-black">{stat.value}</p>
                   </div>
                 </Card>
               </motion.div>
