@@ -150,3 +150,9 @@ export const fetchMyResumeAPI = async () =>
     ...authHeader(),
   });
 
+// HR Dashboard
+export const getHRDashboardAPI = async () =>
+  commonAPI("GET", `${SERVERURL}/api/hr/dashboard`, null, {
+    ...authHeader(),
+  });
+
