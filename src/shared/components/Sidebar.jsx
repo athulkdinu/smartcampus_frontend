@@ -7,10 +7,8 @@ import {
   Briefcase, 
   User, 
   Bell, 
-  HelpCircle,
-  ChevronLeft
+  HelpCircle
 } from 'lucide-react'
-import { useState } from 'react'
 
 const Sidebar = ({ isCollapsed, onToggle }) => {
   const location = useLocation()
@@ -39,7 +37,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       icon: Briefcase, 
       label: 'Placement & Internship', 
       path: '/student/placement',
-      badge: 5
+      badge: null
     },
     { 
       icon: User, 
@@ -51,7 +49,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       icon: Bell, 
       label: 'Notifications', 
       path: '/student/academic/notifications',
-      badge: 3
+      badge: null
     },
     { 
       icon: HelpCircle, 
@@ -142,22 +140,9 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                     {item.label}
                   </motion.span>
                 )}
-                {item.badge && !isCollapsed && (
-                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {item.badge}
-                  </span>
-                )}
-                {item.badge && isCollapsed && (
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-                )}
                 {isCollapsed && (
                   <div className="absolute left-full ml-2 px-3 py-2 bg-slate-800 text-white text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                     {item.label}
-                    {item.badge && (
-                      <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
                   </div>
                 )}
               </motion.button>
