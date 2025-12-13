@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Bell, Search, User, LogOut, Settings } from 'lucide-react'
+import { Bell, User, LogOut, Settings, GraduationCap } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 const Navbar = ({ onMenuClick }) => {
@@ -13,13 +13,37 @@ const Navbar = ({ onMenuClick }) => {
   const getRoleInfo = () => {
     const path = location.pathname
     if (path.startsWith('/admin')) {
-      return { role: 'Admin', id: 'ADM2024', initial: 'A', dashboard: '/admin/dashboard' }
+      return { 
+        role: 'Admin', 
+        id: 'ADM2024', 
+        initial: 'A', 
+        dashboard: '/admin/dashboard',
+        notificationPath: '/admin/communication'
+      }
     } else if (path.startsWith('/faculty')) {
-      return { role: 'Faculty', id: 'FAC2024', initial: 'F', dashboard: '/faculty/dashboard' }
+      return { 
+        role: 'Faculty', 
+        id: 'FAC2024', 
+        initial: 'F', 
+        dashboard: '/faculty/dashboard',
+        notificationPath: '/faculty/communication'
+      }
     } else if (path.startsWith('/hr')) {
-      return { role: 'HR Manager', id: 'HR2024', initial: 'H', dashboard: '/hr/dashboard' }
+      return { 
+        role: 'HR Manager', 
+        id: 'HR2024', 
+        initial: 'H', 
+        dashboard: '/hr/dashboard',
+        notificationPath: '/hr/communication'
+      }
     } else {
-      return { role: 'Student', id: 'STU2024', initial: 'S', dashboard: '/student/dashboard' }
+      return { 
+        role: 'Student', 
+        id: 'STU2024', 
+        initial: 'S', 
+        dashboard: '/student/dashboard',
+        notificationPath: '/student/academic/notifications'
+      }
     }
   }
 
@@ -52,14 +76,17 @@ const Navbar = ({ onMenuClick }) => {
             </button>
           )}
           
-          {/* Search */}
-          <div className="hidden md:flex items-center gap-2 bg-slate-50 rounded-xl px-4 py-2 border border-slate-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
-            <Search className="w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-400 w-64"
-            />
+          {/* Smart Campus Branding */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+              <GraduationCap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Smart Campus
+              </h1>
+              <p className="text-xs text-slate-500 hidden md:block">Campus Management System</p>
+            </div>
           </div>
         </div>
 
@@ -76,9 +103,11 @@ const Navbar = ({ onMenuClick }) => {
           </div>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-600 hover:text-slate-900">
+          <button 
+            onClick={() => navigate(roleInfo.notificationPath)}
+            className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-600 hover:text-slate-900"
+          >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
 
           {/* Profile */}
