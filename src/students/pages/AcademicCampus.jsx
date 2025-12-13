@@ -6,7 +6,6 @@ import MainLayout from '../../shared/layouts/MainLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import {
-  notices,
   attendanceData,
   overallAttendance,
   assignments,
@@ -17,16 +16,20 @@ import {
 } from '../data/academicData'
 import { getInboxAPI } from '../../services/communicationAPI'
 import { getStudentLecturesAPI } from '../../services/lectureAPI'
+import { getStudentAnnouncementsAPI } from '../../services/announcementAPI'
 
 const AcademicCampus = () => {
   const navigate = useNavigate()
   const [lectureMaterials, setLectureMaterials] = useState([])
   const [loadingLectures, setLoadingLectures] = useState(true)
   const [communications, setCommunications] = useState([])
+  const [announcements, setAnnouncements] = useState([])
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true)
 
   useEffect(() => {
     loadLectureMaterials()
     loadMessages()
+    loadAnnouncements()
   }, [])
 
   const loadMessages = async () => {
@@ -51,6 +54,20 @@ const AcademicCampus = () => {
       console.error('Error loading lecture materials:', error)
     } finally {
       setLoadingLectures(false)
+    }
+  }
+
+  const loadAnnouncements = async () => {
+    try {
+      setLoadingAnnouncements(true)
+      const res = await getStudentAnnouncementsAPI()
+      if (res?.status === 200) {
+        setAnnouncements((res.data.announcements || []).slice(0, 3)) // Show latest 3
+      }
+    } catch (error) {
+      console.error('Error loading announcements:', error)
+    } finally {
+      setLoadingAnnouncements(false)
     }
   }
 
@@ -106,7 +123,6 @@ const AcademicCampus = () => {
 
   // Get first 4 lecture materials for highlights
   const lectureHighlights = lectureMaterials.slice(0, 4)
-  const noticeHighlights = notices.slice(0, 3)
 
   const handleNavigate = (path) => navigate(path)
 
@@ -259,30 +275,67 @@ const AcademicCampus = () => {
                 View all
               </Button>
             </div>
-            <div className="space-y-4">
-              {noticeHighlights.map((notice) => (
-                <div key={notice.id} className="rounded-xl border border-slate-200 bg-slate-50 p-5 hover:bg-white hover:shadow-md transition-all space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900 mb-1">{notice.title}</p>
-                      <p className="text-xs text-slate-500">{notice.date}</p>
-                    </div>
-                    <span
-                      className={`text-xs px-3 py-1 rounded-full font-semibold ml-3 ${
-                        notice.priority === 'high'
-                          ? 'bg-red-50 text-red-600'
-                          : notice.priority === 'medium'
-                            ? 'bg-amber-50 text-amber-600'
-                            : 'bg-blue-50 text-blue-600'
-                      }`}
+            {loadingAnnouncements ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-slate-500">Loading announcements...</p>
+              </div>
+            ) : announcements.length === 0 ? (
+              <div className="text-center py-8">
+                <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-sm text-slate-500">No announcements available</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {announcements.map((announcement) => {
+                  const getPriorityBadge = (priority) => {
+                    switch (priority) {
+                      case 'high':
+                        return 'bg-red-100 text-red-700 border-red-200'
+                      case 'medium':
+                        return 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                      case 'low':
+                        return 'bg-blue-100 text-blue-700 border-blue-200'
+                      default:
+                        return 'bg-slate-100 text-slate-700 border-slate-200'
+                    }
+                  }
+                  const getPriorityLabel = (priority) => {
+                    switch (priority) {
+                      case 'high':
+                        return 'High'
+                      case 'medium':
+                        return 'Medium'
+                      case 'low':
+                        return 'Low'
+                      default:
+                        return 'Normal'
+                    }
+                  }
+                  return (
+                    <div
+                      key={announcement._id}
+                      onClick={() => handleNavigate('/student/academic/notifications')}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-5 hover:bg-white hover:shadow-md transition-all space-y-2 cursor-pointer"
                     >
-                      {notice.type}
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-600 line-clamp-2">{notice.description}</p>
-                </div>
-              ))}
-            </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-900 mb-1">{announcement.title}</p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(announcement.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <span
+                          className={`text-xs px-3 py-1 rounded-full font-semibold ml-3 border ${getPriorityBadge(announcement.priority)}`}
+                        >
+                          {getPriorityLabel(announcement.priority)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 line-clamp-2">{announcement.message}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </Card>
         </div>
 
