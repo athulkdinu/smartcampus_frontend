@@ -6,23 +6,73 @@ import Card from '../../../shared/components/Card'
 import Button from '../../../shared/components/Button'
 import { Calendar, Clock, User, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
 import { getExamsAPI } from '../../../services/examAPI'
+import { getProfileAPI } from '../../../services/api'
 
 const ExamsPage = () => {
   const [exams, setExams] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedExams, setExpandedExams] = useState({})
-
-  // Mock student info - will be replaced with API data later
-  const studentInfo = {
-    name: 'John Doe',
-    registerNo: 'STU-2024-001',
-    course: 'Computer Science',
-    semester: '4'
-  }
+  const [studentInfo, setStudentInfo] = useState({
+    name: '',
+    registerNo: '',
+    course: ''
+  })
+  const [loadingStudentInfo, setLoadingStudentInfo] = useState(true)
 
   useEffect(() => {
     loadExams()
+    loadStudentInfo()
   }, [])
+
+  const loadStudentInfo = async () => {
+    try {
+      setLoadingStudentInfo(true)
+      // Try to get from sessionStorage first (faster)
+      const sessionUser = sessionStorage.getItem('user')
+      if (sessionUser) {
+        try {
+          const user = JSON.parse(sessionUser)
+          setStudentInfo({
+            name: user.name || '',
+            registerNo: user.studentID || user.id || '',
+            course: user.className || user.department || ''
+          })
+          setLoadingStudentInfo(false)
+          return
+        } catch (e) {
+          // If parsing fails, continue to API call
+        }
+      }
+
+      // Fallback to API call
+      const res = await getProfileAPI()
+      if (res?.status === 200 && res.data?.user) {
+        const user = res.data.user
+        setStudentInfo({
+          name: user.name || '',
+          registerNo: user.studentID || user.id || '',
+          course: user.className || user.department || ''
+        })
+      } else {
+        // Set empty values if API fails
+        setStudentInfo({
+          name: '',
+          registerNo: '',
+          course: ''
+        })
+      }
+    } catch (error) {
+      console.error('Error loading student info:', error)
+      // Set empty values on error
+      setStudentInfo({
+        name: '',
+        registerNo: '',
+        course: ''
+      })
+    } finally {
+      setLoadingStudentInfo(false)
+    }
+  }
 
   const loadExams = async () => {
     try {
@@ -81,22 +131,30 @@ const ExamsPage = () => {
               <User className="w-5 h-5 text-blue-600" />
               Student Information
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Name</p>
-                <p className="text-sm font-semibold text-slate-900">{studentInfo.name}</p>
+            {loadingStudentInfo ? (
+              <div className="text-center py-4 text-slate-500 text-sm">Loading student information...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Name</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {studentInfo.name || '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Register No</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {studentInfo.registerNo || '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Class / Department</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {studentInfo.course || '—'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Register No</p>
-                <p className="text-sm font-semibold text-slate-900">{studentInfo.registerNo}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Course / Semester</p>
-                <p className="text-sm font-semibold text-slate-900">
-                  {studentInfo.course} - Semester {studentInfo.semester}
-                </p>
-              </div>
-            </div>
+            )}
           </div>
         </Card>
 

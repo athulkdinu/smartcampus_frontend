@@ -17,7 +17,6 @@ import MainLayout from '../../shared/layouts/MainLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import Modal from '../../shared/components/Modal'
-import { weeklyTimetable } from '../data/academicData'
 import { getStudentAttendanceSummaryAPI } from '../../services/attendanceAPI'
 import { getTodayClassesAPI, getTimetableAPI } from '../../services/timetableAPI'
 import { getStudentAnnouncementsAPI } from '../../services/announcementAPI'
@@ -103,21 +102,13 @@ const StudentDashboard = () => {
           setStudentClassName(res.data.className)
         }
       } else {
-        // Fallback to dummy data if API fails
-        setTodayClasses([
-          { time: '09:00 AM', subject: 'Data Structures', room: 'A-101', instructor: 'Dr. Smith' },
-          { time: '11:00 AM', subject: 'Web Development', room: 'B-205', instructor: 'Prof. Johnson' },
-          { time: '02:00 PM', subject: 'Database Systems', room: 'A-102', instructor: 'Dr. Williams' }
-        ])
+        // No fallback dummy data - show empty state
+        setTodayClasses([])
       }
     } catch (error) {
       console.error('Error loading today classes:', error)
-      // Fallback to dummy data
-      setTodayClasses([
-        { time: '09:00 AM', subject: 'Data Structures', room: 'A-101', instructor: 'Dr. Smith' },
-        { time: '11:00 AM', subject: 'Web Development', room: 'B-205', instructor: 'Prof. Johnson' },
-        { time: '02:00 PM', subject: 'Database Systems', room: 'A-102', instructor: 'Dr. Williams' }
-      ])
+      // No fallback dummy data - show empty state
+      setTodayClasses([])
     } finally {
       setLoadingClasses(false)
     }
@@ -272,7 +263,7 @@ const StudentDashboard = () => {
   const statCards = [
     {
       label: 'Attendance',
-      value: loadingStats ? '...' : `${stats.attendance}%`,
+      value: loadingStats ? '...' : (stats.attendance > 0 ? `${stats.attendance}%` : '—'),
       icon: Calendar,
       color: 'from-blue-500 to-blue-600',
       bgColor: 'bg-blue-50',
@@ -280,7 +271,7 @@ const StudentDashboard = () => {
     },
     {
       label: 'Skills Completed',
-      value: loadingStats ? '...' : stats.skillsCompleted,
+      value: loadingStats ? '...' : (stats.skillsCompleted > 0 ? stats.skillsCompleted : '—'),
       icon: BookOpen,
       color: 'from-indigo-500 to-indigo-600',
       bgColor: 'bg-indigo-50',
@@ -288,19 +279,19 @@ const StudentDashboard = () => {
     },
     {
       label: 'Placements Applied',
-      value: loadingStats ? '...' : stats.placementsApplied,
+      value: loadingStats ? '...' : (stats.placementsApplied > 0 ? stats.placementsApplied : '—'),
       icon: Briefcase,
       color: 'from-purple-500 to-purple-600',
       bgColor: 'bg-purple-50',
       onClick: () => navigate('/student/placement')
     },
     {
-      label: 'Pending Assignments',
-      value: loadingStats ? '...' : stats.assignmentsPending,
-      icon: Clock,
-      color: 'from-amber-500 to-amber-600',
-      bgColor: 'bg-amber-50',
-      onClick: () => navigate('/student/academic/assignments')
+      label: 'Leave Requests Approved',
+      value: loadingStats ? '...' : (stats.leaveApproved > 0 ? stats.leaveApproved : '—'),
+      icon: CheckCircle2,
+      color: 'from-emerald-500 to-emerald-600',
+      bgColor: 'bg-emerald-50',
+      onClick: () => navigate('/student/academic/leave')
     }
   ]
 
@@ -670,31 +661,6 @@ const StudentDashboard = () => {
                       </div>
                     </div>
                   ))
-                ) : fullTimetable === null ? (
-                  // Fallback to dummy data if API fails
-                  weeklyTimetable.find(d => d.day === selectedDay)?.classes?.map((slot, idx) => (
-                    <div
-                      key={`${slot.time}-${idx}`}
-                      className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50"
-                    >
-                      <div>
-                        <p className="text-xs text-slate-500">Time</p>
-                        <p className="text-sm font-semibold text-slate-900">{slot.time}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Subject</p>
-                        <p className="text-sm font-semibold text-slate-900">{slot.subject}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Faculty</p>
-                        <p className="text-sm text-slate-700">{slot.instructor}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Room</p>
-                        <p className="text-sm text-slate-700">{slot.room}</p>
-                      </div>
-                    </div>
-                  )) || <div className="text-center py-8 text-slate-500">No classes scheduled for {selectedDay}</div>
                 ) : (
                   <div className="text-center py-8 text-slate-500">No classes scheduled for {selectedDay}</div>
                 )}

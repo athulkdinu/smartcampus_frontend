@@ -1,19 +1,11 @@
-import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import FacultyLayout from '../../shared/layouts/FacultyLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
-import { Bell, CalendarCheck2, AlertTriangle } from 'lucide-react'
-import { getActiveFacultyProfile } from '../utils/getActiveFaculty'
+import { Bell } from 'lucide-react'
 
-const timeline = [
-  { title: 'Exam notification sent to CSE-2B', time: '10 mins ago', type: 'info' },
-  { title: 'Lab attendance reminder to ECE-3A', time: '1 hour ago', type: 'reminder' },
-  { title: 'Leave request approved', time: 'Yesterday', type: 'success' }
-]
-
+// Notifications will be fetched from backend API in future
 const FacultyNotifications = () => {
-  const selectedFaculty = useMemo(() => getActiveFacultyProfile(), [])
 
   return (
     <FacultyLayout>
