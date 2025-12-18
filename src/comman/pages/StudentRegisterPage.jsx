@@ -73,7 +73,7 @@ const StudentRegisterPage = () => {
         toast.success('Registration successful. Please login.')
         navigate('/login?registered=true')
       } else {
-        const message = response?.response?.data?.message || 'Registration failed. Please try again.'
+        const message = response?.data?.message || 'Registration failed. Please try again.'
         toast.error(message)
       }
     } catch (error) {

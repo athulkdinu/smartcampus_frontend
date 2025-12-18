@@ -69,11 +69,11 @@ const LoginPage = () => {
           navigate('/')
         }
       } else {
-        const status = response?.response?.status
+        const status = response?.status
         const errorMessage =
           status === 400
-            ? 'Invalid email or password'
-            : response?.response?.data?.message || 'Login failed. Please try again.'
+            ? response?.data?.message || 'Invalid email or password'
+            : response?.data?.message || 'Login failed. Please try again.'
         toast.error(errorMessage)
       }
     } catch (error) {
