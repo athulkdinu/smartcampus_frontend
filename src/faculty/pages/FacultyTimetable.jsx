@@ -550,13 +550,56 @@ const FacultyTimetable = () => {
             </p>
           )}
 
-          <FormInput
-            label="Subject"
-            value={slotForm.subject}
-            onChange={(e) => setSlotForm({ ...slotForm, subject: e.target.value })}
-            placeholder="e.g., Data Structures"
-            required
-          />
+          <div>
+            <label className="text-sm font-semibold text-slate-700 mb-2 block">
+              Subject <span className="text-red-500">*</span>
+            </label>
+            {selectedClass?.subjects && selectedClass.subjects.length > 0 ? (
+              <>
+                <select
+                  value={slotForm.subject}
+                  onChange={(e) => {
+                    const selectedSubjectName = e.target.value
+                    // Find the selected subject from the class
+                    const selectedSubject = selectedClass.subjects.find(
+                      sub => sub.name === selectedSubjectName
+                    )
+                    setSlotForm({
+                      ...slotForm,
+                      subject: selectedSubjectName,
+                      faculty: selectedSubject?.teacher?._id || null
+                    })
+                  }}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  required
+                >
+                  <option value="">Select a subject</option>
+                  {selectedClass.subjects.map((subject, idx) => (
+                    <option key={idx} value={subject.name}>
+                      {subject.name}
+                      {subject.teacher ? ` - ${subject.teacher.name}` : ' (No faculty assigned)'}
+                    </option>
+                  ))}
+                </select>
+                {slotForm.subject && selectedClass.subjects.find(s => s.name === slotForm.subject)?.teacher && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Faculty: {selectedClass.subjects.find(s => s.name === slotForm.subject).teacher.name}
+                  </p>
+                )}
+                {slotForm.subject && !selectedClass.subjects.find(s => s.name === slotForm.subject)?.teacher && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    ⚠️ No faculty assigned to this subject
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="p-3 rounded-xl border border-amber-200 bg-amber-50">
+                <p className="text-sm text-amber-700">
+                  No subjects assigned to this class. Please assign subjects in Class Management first.
+                </p>
+              </div>
+            )}
+          </div>
 
           <FormInput
             label="Subject Code (optional)"
