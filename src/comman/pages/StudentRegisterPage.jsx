@@ -69,15 +69,22 @@ const StudentRegisterPage = () => {
 
       const response = await registerAPI(payload)
 
+      // Debug logging
+      console.log('Registration response:', response)
+      console.log('Response status:', response?.status)
+      console.log('Response data:', response?.data)
+
       if (response?.status === 201) {
         toast.success('Registration successful. Please login.')
         navigate('/login?registered=true')
       } else {
-        const message = response?.data?.message || 'Registration failed. Please try again.'
+        const message = response?.data?.message || `Registration failed (Status: ${response?.status}). Please try again.`
+        console.error('Registration error:', message, response)
         toast.error(message)
       }
     } catch (error) {
-      const message = error?.response?.data?.message || 'Something went wrong. Please try again.'
+      console.error('Registration catch error:', error)
+      const message = error?.response?.data?.message || error?.message || 'Something went wrong. Please try again.'
       toast.error(message)
     }
   }
