@@ -252,14 +252,13 @@ const HRDashboard = () => {
                 transition={{ delay: idx * 0.1 }}
                 whileHover={{ y: -4 }}
               >
-                <Card className="relative overflow-hidden bg-slate-900 text-white border border-white/10">
-                  <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.15),_transparent_70%)]" />
-                  <div className="relative flex flex-col gap-3 p-6">
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${stat.accent} flex items-center justify-center shadow-lg shadow-slate-900/40`}>
+                <Card className="relative overflow-hidden bg-white border border-slate-200 shadow-lg">
+                  <div className="relative z-10 flex flex-col gap-3 p-6">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${stat.accent} flex items-center justify-center shadow-lg`}>
                       <Icon className="w-7 h-7 text-white" />
                     </div>
-                    <p className="text-xs uppercase tracking-wide text-slate-300 font-semibold">{stat.label}</p>
-                    <p className="text-4xl font-bold text-white">{stat.value}</p>
+                    <p className="text-xs uppercase tracking-wide text-slate-600 font-semibold">{stat.label}</p>
+                    <p className="text-4xl font-bold text-black-900 leading-none">{stat.value !== undefined && stat.value !== null ? stat.value : 0}</p>
                   </div>
                 </Card>
               </motion.div>
