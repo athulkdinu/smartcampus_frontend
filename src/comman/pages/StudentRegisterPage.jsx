@@ -58,15 +58,23 @@ const StudentRegisterPage = () => {
     if (!validateForm()) return
 
     try {
+      // Build payload - only include fields that have values
       const payload = {
         name: formData.fullName.trim(),
-        email: formData.email,
+        email: formData.email.trim(),
         password: formData.password,
-        role: 'student',
-        phone: formData.phone || undefined,
-        department: formData.department || undefined
+        role: 'student'
+      }
+      
+      // Only add optional fields if they have values
+      if (formData.phone && formData.phone.trim()) {
+        payload.phone = formData.phone.trim()
+      }
+      if (formData.department && formData.department.trim()) {
+        payload.department = formData.department.trim()
       }
 
+      console.log('Sending registration payload:', payload)
       const response = await registerAPI(payload)
 
       // Debug logging

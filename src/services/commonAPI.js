@@ -8,10 +8,24 @@ const commonAPI = async (httpRequest, url, reqBody, reqHeader) => {
         headers: reqHeader ?? {}  
     };
 
+    // Debug logging
+    console.log(`[API] ${httpRequest} ${url}`, {
+        data: reqBody,
+        headers: reqHeader
+    });
+
     try {
         const response = await axios(requestConfig);
+        console.log(`[API] Success:`, response.status, response.data);
         return response;
     } catch (error) {
+        console.error(`[API] Error:`, {
+            url,
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message
+        });
+        
         // Return error response if available, otherwise return error object
         if (error.response) {
             // The request was made and the server responded with a status code
