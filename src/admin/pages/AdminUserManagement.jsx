@@ -7,7 +7,6 @@ import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
 import Modal from '../../shared/components/Modal'
 import { Users, Plus, Search } from 'lucide-react'
-import { roleOptions } from '../data/adminDemoData'
 import { createUserByAdminAPI } from '../../services/allAPI'
 import { getAllUsersAPI } from '../../services/api'
 
@@ -24,6 +23,12 @@ const AdminUserManagement = () => {
     password: '',
     role: 'student'
   })
+
+  const roleOptions = [
+    { value: 'student', label: 'Student' },
+    { value: 'faculty', label: 'Faculty' },
+    { value: 'hr', label: 'HR' }
+  ]
 
   const fetchUsers = async () => {
     try {

@@ -5,15 +5,6 @@ import { ArrowRight, Calendar, BookOpen, Bell, TrendingUp, Video, FileText } fro
 import MainLayout from '../../shared/layouts/MainLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
-import {
-  attendanceData,
-  overallAttendance,
-  assignments,
-  gradesData,
-  exams,
-  leaveRequests,
-  complaints,
-} from '../data/academicData'
 import { getInboxAPI } from '../../services/communicationAPI'
 import { getStudentLecturesAPI } from '../../services/lectureAPI'
 import { getStudentAnnouncementsAPI } from '../../services/announcementAPI'
@@ -71,40 +62,32 @@ const AcademicCampus = () => {
     }
   }
 
-  const pendingAssignments = assignments.filter(item => item.status !== 'submitted').length
-
-  const performanceScore = useMemo(() => {
-    const gradePoints = { 'A+': 10, A: 9, 'A-': 8.5, 'B+': 8, B: 7 }
-    const average =
-      gradesData.reduce((acc, subject) => acc + (gradePoints[subject.overall] || 7), 0) /
-      gradesData.length
-    return average.toFixed(1)
-  }, [])
-
+  // Since academic stats now come only from backend-driven pages,
+  // show neutral placeholders here instead of static demo data.
   const quickStats = [
     {
       title: 'Grade Snapshot',
-      metric: gradesData[0]?.overall || 'A',
-      meta: `${performanceScore} / 10 performance`,
-      trend: '+2% from last term',
+      metric: '—',
+      meta: 'Connects to your latest grade records',
+      trend: '',
       path: '/student/academic/grades',
       icon: TrendingUp,
       color: 'from-blue-500 to-blue-600'
     },
     {
       title: 'Attendance Health',
-      metric: `${overallAttendance}%`,
-      meta: `${attendanceData.length} subjects`,
-      trend: 'Stable this week',
+      metric: '—',
+      meta: 'Shows once attendance records are available',
+      trend: '',
       path: '/student/academic/attendance',
       icon: Calendar,
       color: 'from-green-500 to-green-600'
     },
     {
       title: 'Assignments Due',
-      metric: pendingAssignments,
-      meta: 'Pending submissions',
-      trend: '2 due soon',
+      metric: '—',
+      meta: 'Pending submissions summary from assignments',
+      trend: '',
       path: '/student/academic/assignments',
       icon: BookOpen,
       color: 'from-orange-500 to-orange-600'
@@ -112,13 +95,13 @@ const AcademicCampus = () => {
   ]
 
   const serviceCards = [
-    { title: 'Academic Grades', description: 'Subject-wise breakdown & transcripts.', stat: `${gradesData.length} subjects`, path: '/student/academic/grades', icon: TrendingUp },
-    { title: 'Attendance Insights', description: 'Daily tracker, warnings & trends.', stat: `${overallAttendance}% overall`, path: '/student/academic/attendance', icon: Calendar },
-    { title: 'Assignments Board', description: 'Submissions, feedback & timers.', stat: `${assignments.length} tasks`, path: '/student/academic/assignments', icon: BookOpen },
+    { title: 'Academic Grades', description: 'Subject-wise breakdown & transcripts.', stat: 'Opens grades page', path: '/student/academic/grades', icon: TrendingUp },
+    { title: 'Attendance Insights', description: 'Daily tracker, warnings & trends.', stat: 'Opens attendance page', path: '/student/academic/attendance', icon: Calendar },
+    { title: 'Assignments Board', description: 'Submissions, feedback & timers.', stat: 'Opens assignments page', path: '/student/academic/assignments', icon: BookOpen },
     { title: 'Announcements', description: 'Campus updates & important notices.', stat: 'Latest updates', path: '/student/academic/announcements', icon: Bell },
-    { title: 'Leave Portal', description: 'Apply, upload proofs & track approvals.', stat: `${leaveRequests.length} records`, path: '/student/academic/leave', icon: Calendar },
-    { title: 'Exam Hub', description: 'Schedules, seating & hall tickets.', stat: `${exams.length} upcoming`, path: '/student/academic/exams', icon: BookOpen },
-    { title: 'Complaints Desk', description: 'Raise infra/service concerns.', stat: `${complaints.length} tickets`, path: '/student/academic/complaints', icon: Bell }
+    { title: 'Leave Portal', description: 'Apply, upload proofs & track approvals.', stat: 'Leave history', path: '/student/academic/leave', icon: Calendar },
+    { title: 'Exam Hub', description: 'Schedules, seating & hall tickets.', stat: 'Exam schedules', path: '/student/academic/exams', icon: BookOpen },
+    { title: 'Complaints Desk', description: 'Raise infra/service concerns.', stat: 'Your complaints', path: '/student/academic/complaints', icon: Bell }
   ]
 
   // Get first 4 lecture materials for highlights

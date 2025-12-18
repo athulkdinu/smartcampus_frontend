@@ -66,10 +66,7 @@ const GradesPage = () => {
             <h1 className="text-3xl font-bold text-slate-900">Academic Grades</h1>
             <p className="text-slate-600">Subject-wise breakdown, assessments and detailed feedback</p>
           </div>
-          <Button variant="primary">
-            <Download className="w-4 h-4 mr-2" />
-            Download Transcript
-          </Button>
+          
         </div>
 
         {/* Summary Stats */}
@@ -148,7 +145,13 @@ const GradesPage = () => {
                       </div>
                       <div className="text-center md:text-right">
                         <p className="text-xs text-slate-500 mb-1">Overall Grade</p>
-                        <p className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        <p
+                          className={
+                            overallGrade === 'Pending'
+                              ? 'text-2xl font-semibold text-slate-500'
+                              : 'text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent'
+                          }
+                        >
                           {overallGrade}
                         </p>
                       </div>

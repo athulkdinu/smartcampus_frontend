@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Bell, User, LogOut, Settings, GraduationCap } from 'lucide-react'
+import { Bell, User, LogOut, GraduationCap } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 const Navbar = ({ onMenuClick }) => {
@@ -140,16 +140,6 @@ const Navbar = ({ onMenuClick }) => {
                 >
                   <User className="w-4 h-4 text-slate-600" />
                   <span className="text-sm text-slate-700">Profile</span>
-                </button>
-                <button
-                  onClick={() => {
-                    navigate(`${roleInfo.dashboard.replace('/dashboard', '/settings')}`)
-                    setShowProfileMenu(false)
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 transition-colors text-left"
-                >
-                  <Settings className="w-4 h-4 text-slate-600" />
-                  <span className="text-sm text-slate-700">Settings</span>
                 </button>
                 <div className="border-t border-slate-200 my-2"></div>
                 <button

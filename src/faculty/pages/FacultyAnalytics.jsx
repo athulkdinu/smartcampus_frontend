@@ -25,9 +25,15 @@ const FacultyAnalytics = () => {
             <h1 className="text-3xl font-bold text-slate-900">Pulse of every cohort</h1>
             <p className="text-slate-600">Monitor attendance, grading velocity, and engagement in one place.</p>
           </div>
-          <div className="px-4 py-2 rounded-2xl bg-blue-50 text-blue-700 text-sm font-semibold">
-            {selectedFaculty.subject.name} · {selectedFaculty.stats.sections} sections
-          </div>
+          {selectedFaculty ? (
+            <div className="px-4 py-2 rounded-2xl bg-blue-50 text-blue-700 text-sm font-semibold">
+              {selectedFaculty.subject.name} · {selectedFaculty.stats.sections} sections
+            </div>
+          ) : (
+            <div className="px-4 py-2 rounded-2xl bg-slate-100 text-slate-600 text-sm font-semibold">
+              Faculty profile data not available
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -58,19 +64,19 @@ const FacultyAnalytics = () => {
             </ResponsiveContainer>
           </Card>
 
-          {[{
+          {([{
             title: 'Attendance health',
-            value: `${selectedFaculty.stats.attendance}%`,
-            desc: 'Across all sessions this week',
+            value: selectedFaculty ? `${selectedFaculty.stats.attendance}%` : '—',
+            desc: selectedFaculty ? 'Across all sessions this week' : 'Connects once faculty stats are available',
             icon: TrendingUp,
             color: 'text-emerald-600'
           }, {
             title: 'Grading velocity',
-            value: `${100 - selectedFaculty.stats.pendingGrading}%`,
-            desc: 'Of submissions cleared',
+            value: selectedFaculty ? `${100 - selectedFaculty.stats.pendingGrading}%` : '—',
+            desc: selectedFaculty ? 'Of submissions cleared' : 'Shows grading progress when data is available',
             icon: Target,
             color: 'text-blue-600'
-          }].map((item, idx) => {
+          }]).map((item, idx) => {
             const Icon = item.icon
             return (
               <Card key={item.title}>

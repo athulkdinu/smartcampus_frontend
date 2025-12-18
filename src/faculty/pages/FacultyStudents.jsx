@@ -40,23 +40,29 @@ const FacultyStudents = () => {
                 </div>
               </div>
             </div>
-            <div className="space-y-4">
-              {selectedFaculty.sections.map(section => (
-                <div key={section.name} className="p-5 rounded-2xl border border-slate-200">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-500">{section.name}</p>
-                      <h3 className="text-lg font-semibold text-slate-900">{section.students} students</h3>
+            {selectedFaculty && selectedFaculty.sections?.length > 0 ? (
+              <div className="space-y-4">
+                {selectedFaculty.sections.map(section => (
+                  <div key={section.name} className="p-5 rounded-2xl border border-slate-200">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{section.name}</p>
+                        <h3 className="text-lg font-semibold text-slate-900">{section.students} students</h3>
+                      </div>
+                      <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold">
+                        {section.attendance}% attendance
+                      </span>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold">
-                      {section.attendance}% attendance
-                    </span>
+                    <p className="text-sm text-slate-600 mb-2">{section.focus}</p>
+                    <div className="text-xs text-slate-500">{section.schedule} · {section.room}</div>
                   </div>
-                  <p className="text-sm text-slate-600 mb-2">{section.focus}</p>
-                  <div className="text-xs text-slate-500">{section.schedule} · {section.room}</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-slate-500 text-sm">
+                No roster data available yet.
+              </div>
+            )}
           </Card>
 
           <div className="space-y-4">

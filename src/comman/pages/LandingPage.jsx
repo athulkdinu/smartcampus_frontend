@@ -233,7 +233,7 @@ const LandingPage = () => {
               <a href="#" className="hover:text-blue-600 transition-colors">Contact</a>
             </div>
             <div className="text-sm text-slate-500">
-              © 2025 Smart Campus. All Rights Reserved.
+             By Athul K Dinu
             </div>
           </div>
         </div>

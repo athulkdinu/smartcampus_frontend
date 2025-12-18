@@ -5,10 +5,9 @@ import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
 import { Calendar, Users, Send } from 'lucide-react'
-import { interviewPipeline as pipelineSeed } from '../data/hrDemoData'
 
 const HRInterviews = () => {
-  const [pipeline, setPipeline] = useState(pipelineSeed)
+  const [pipeline, setPipeline] = useState([])
   const [form, setForm] = useState({
     candidate: '',
     jobTitle: '',

@@ -27,7 +27,11 @@ const FacultySettings = () => {
           <div>
             <p className="text-sm uppercase tracking-wide text-slate-500">Settings</p>
             <h1 className="text-3xl font-bold text-slate-900">Control preferences & security</h1>
-            <p className="text-slate-600">Configure how {selectedFaculty.name} receives alerts and shares data.</p>
+            <p className="text-slate-600">
+              {selectedFaculty
+                ? `Configure how ${selectedFaculty.name} receives alerts and shares data.`
+                : 'Faculty profile data not available yet.'}
+            </p>
           </div>
           <Button variant="primary">
             <Save className="w-4 h-4 mr-2" />
@@ -39,7 +43,7 @@ const FacultySettings = () => {
           <Card className="lg:col-span-2">
             <h2 className="text-xl font-bold text-slate-900 mb-6">Notifications</h2>
             <div className="space-y-4">
-              {[
+                {[
                 { key: 'notifications', label: 'Alert me about attendance drops' },
                 { key: 'autoShare', label: 'Auto-share announcements with admin' },
                 { key: 'weeklyDigest', label: 'Send weekly digest on Fridays' }
@@ -50,7 +54,11 @@ const FacultySettings = () => {
                 >
                   <div>
                     <p className="font-semibold text-slate-900">{item.label}</p>
-                    <p className="text-sm text-slate-500">Applies to all sections of {selectedFaculty.subject.code}</p>
+                    <p className="text-sm text-slate-500">
+                      {selectedFaculty
+                        ? `Applies to all sections of ${selectedFaculty.subject.code}`
+                        : 'Will apply once faculty subject data is connected.'}
+                    </p>
                   </div>
                   <button
                     type="button"

@@ -6,8 +6,7 @@ import {
   BookOpen, 
   Briefcase, 
   User, 
-  Bell, 
-  HelpCircle
+  Bell
 } from 'lucide-react'
 
 const Sidebar = ({ isCollapsed, onToggle }) => {
@@ -49,12 +48,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       icon: Bell, 
       label: 'Notifications', 
       path: '/student/academic/notifications',
-      badge: null
-    },
-    { 
-      icon: HelpCircle, 
-      label: 'Help & Support', 
-      path: '/student/help',
       badge: null
     }
   ]
@@ -158,7 +151,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
               animate={{ opacity: 1 }}
               className="text-xs text-slate-400 text-center"
             >
-              © 2025 Smart Campus
+             By Athul K Dinu
             </motion.div>
           )}
         </div>

@@ -5,7 +5,6 @@ import FacultyLayout from '../../shared/layouts/FacultyLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import { Calendar, MapPin, Clock, Sparkles, CheckCircle2, XCircle, Share2 } from 'lucide-react'
-import { eventProposals as demoEventProposals } from '../../shared/data/workflowData'
 import { createEventAPI, getFacultyRequestsAPI, updateEventStatusAPI } from '../../services/api'
 
 const statusStyles = {
@@ -85,10 +84,10 @@ const FacultyEventRequests = () => {
           }))
           setRequests(backend)
         } else {
-          setRequests(demoEventProposals)
+          setRequests([])
         }
       } catch {
-        setRequests(demoEventProposals)
+        setRequests([])
       }
     }
     loadRequests()

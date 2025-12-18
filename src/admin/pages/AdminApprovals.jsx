@@ -6,11 +6,10 @@ import AdminLayout from '../../shared/layouts/AdminLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import { CheckCircle2, XCircle, Calendar, Building2, Users, ArrowRight, AlertTriangle } from 'lucide-react'
-import { pendingApprovals } from '../data/adminDemoData'
 
 const AdminApprovals = () => {
   const navigate = useNavigate()
-  const [approvals, setApprovals] = useState(pendingApprovals)
+  const [approvals, setApprovals] = useState([])
 
   const getTypeIcon = (type) => {
     switch (type) {

@@ -27,7 +27,6 @@ const Breadcrumbs = () => {
     'placement': 'Placement & Internship',
     'analytics': 'Analytics & Reports',
     'profile': 'Profile',
-    'help': 'Help & Support',
     'users': 'User Management',
     'campus': 'Campus Management',
     'approvals': 'Approvals',

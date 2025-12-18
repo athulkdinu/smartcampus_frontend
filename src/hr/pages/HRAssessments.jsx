@@ -4,11 +4,10 @@ import HRLayout from '../../shared/layouts/HRLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
-import { assessments as assessmentSeed, assessmentQuestionBank } from '../data/hrDemoData'
 import { CheckCircle2, PlusCircle } from 'lucide-react'
 
 const HRAssessments = () => {
-  const [tests, setTests] = useState(assessmentSeed)
+  const [tests, setTests] = useState([])
   const [testForm, setTestForm] = useState({
     title: '',
     jobId: '',
@@ -45,12 +44,7 @@ const HRAssessments = () => {
       toast.error('Add question and answer')
       return
     }
-    assessmentQuestionBank.push({
-      testId: questionForm.testId,
-      question: questionForm.question,
-      options: questionForm.options,
-      answer: questionForm.answer
-    })
+    // In a real implementation this would persist to backend.
     toast.success('Question saved to bank')
     setQuestionForm({ testId: questionForm.testId, question: '', options: ['', '', '', ''], answer: '' })
   }

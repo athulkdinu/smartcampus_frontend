@@ -5,10 +5,9 @@ import AdminLayout from '../../shared/layouts/AdminLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import { Building2, Calendar, Clock, MapPin, CheckCircle2, XCircle, BookOpen } from 'lucide-react'
-import { resourceBookings } from '../data/adminDemoData'
 
 const AdminCampusManagement = () => {
-  const [bookings, setBookings] = useState(resourceBookings)
+  const [bookings, setBookings] = useState([])
 
   const handleApproveBooking = (id) => {
     setBookings(bookings.map(booking => 

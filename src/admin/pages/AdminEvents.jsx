@@ -6,10 +6,9 @@ import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
 import FormInput from '../../shared/components/FormInput'
 import { Calendar, Plus, MapPin, Users, DollarSign, CheckCircle2, XCircle } from 'lucide-react'
-import { campusEvents, eventTypes } from '../data/adminDemoData'
 
 const AdminEvents = () => {
-  const [events, setEvents] = useState(campusEvents)
+  const [events, setEvents] = useState([])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -21,6 +20,15 @@ const AdminEvents = () => {
     expectedAttendees: '',
     budget: ''
   })
+
+  const eventTypes = [
+    { value: 'Festival', label: 'Festival' },
+    { value: 'Seminar', label: 'Seminar' },
+    { value: 'Workshop', label: 'Workshop' },
+    { value: 'Competition', label: 'Competition' },
+    { value: 'Fair', label: 'Fair' },
+    { value: 'Conference', label: 'Conference' }
+  ]
 
   const handleCreateEvent = (e) => {
     e.preventDefault()

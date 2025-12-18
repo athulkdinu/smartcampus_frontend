@@ -3,11 +3,10 @@ import toast from 'react-hot-toast'
 import HRLayout from '../../shared/layouts/HRLayout'
 import Card from '../../shared/components/Card'
 import Button from '../../shared/components/Button'
-import { candidateProfiles as seedProfiles } from '../data/hrDemoData'
 import { Users, ThumbsUp, ThumbsDown } from 'lucide-react'
 
 const HRCandidates = () => {
-  const [profiles, setProfiles] = useState(seedProfiles)
+  const [profiles, setProfiles] = useState([])
 
   const updateStatus = (student, status) => {
     setProfiles(prev =>

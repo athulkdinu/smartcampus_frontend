@@ -19,7 +19,6 @@ import SkillsPage from './students/pages/SkillsPage'
 import SkillProgressionPage from './students/pages/SkillProgressionPage'
 import PlacementPage from './students/pages/PlacementPage'
 import ProfilePage from './students/pages/ProfilePage'
-import HelpPage from './students/pages/HelpPage'
 import AdminDashboard from './admin/pages/AdminDashboard'
 import AdminUserManagement from './admin/pages/AdminUserManagement'
 import AdminEventManagement from './admin/pages/AdminEventManagement'
@@ -96,7 +95,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/student/help" element={<HelpPage />} />
+        
         
         {/* Admin Routes */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />

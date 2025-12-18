@@ -1,12 +1,5 @@
-import { facultyProfiles } from '../data/facultyDemoData'
-
-export const getActiveFacultyProfile = () => {
-  if (typeof window === 'undefined') {
-    return facultyProfiles[0]
-  }
-
-  const storedId = window.localStorage.getItem('activeFacultyId')
-  const profile = facultyProfiles.find(faculty => faculty.id === storedId)
-  return profile || facultyProfiles[0]
-}
+// Previously returned a demo faculty profile from local static data.
+// Now returns null so pages can render proper empty states until
+// real backend-powered faculty context is wired in.
+export const getActiveFacultyProfile = () => null
 
